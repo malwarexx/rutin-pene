@@ -1,0 +1,3753 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rutinas Pareja Fit</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --card: #161616;
+    --border: #2a2a2a;
+    --him: #e8ff47;
+    --her: #ff6eb4;
+    --text: #f0f0f0;
+    --muted: #888;
+    --new: #47ffd4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px 60px;
+    overflow-x: hidden;
+  }
+
+  /* ---- PANTALLA DE HUELLA ---- */
+  #lockscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+
+  #lockscreen.unlocking {
+    opacity: 0;
+    transform: scale(1.04);
+    pointer-events: none;
+  }
+
+  .lock-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.4rem, 5vw, 2.2rem);
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    padding: 0 16px;
+  }
+
+  .lock-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* Contenedor huella */
+  .fingerprint-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* SVG huella */
+  .fingerprint-wrap svg {
+    width: 100%;
+    height: 100%;
+    transition: filter 0.3s;
+  }
+
+  .fp-path {
+    stroke: #333;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke 0.3s;
+  }
+
+  /* Estado: escaneando */
+  .fingerprint-wrap.scanning .fp-path {
+    stroke: var(--her);
+    animation: scanStroke 0.4s ease infinite alternate;
+  }
+
+  .fingerprint-wrap.success .fp-path {
+    stroke: #4ade80;
+  }
+
+  @keyframes scanStroke {
+    from { opacity: 0.5; }
+    to   { opacity: 1; }
+  }
+
+  /* Anillo pulsante */
+  .fp-ring {
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+  }
+
+  .fingerprint-wrap.scanning .fp-ring {
+    border-color: var(--her);
+    animation: ringPulse 0.8s ease-in-out infinite;
+  }
+
+  .fingerprint-wrap.success .fp-ring {
+    border-color: #4ade80;
+    animation: none;
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%       { transform: scale(1.1); opacity: 0.5; }
+  }
+
+  /* Barra de progreso */
+  .fp-progress-wrap {
+    width: 180px;
+    height: 3px;
+    background: #222;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .fp-progress-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--him), var(--her));
+    transition: width 0.1s linear;
+  }
+
+  /* Mensaje de estado */
+  .fp-status {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    height: 16px;
+    transition: color 0.3s;
+    text-align: center;
+  }
+
+  .fp-status.ok { color: #4ade80; }
+
+  /* Partículas de éxito */
+  .fp-burst {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .fp-dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    opacity: 0;
+  }
+
+  .fp-dot.fire {
+    animation: dotBurst 0.7s ease forwards;
+  }
+
+  @keyframes dotBurst {
+    0%   { opacity: 1; transform: translate(-50%, -50%) rotate(var(--a)) translateY(0px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateY(-55px) scale(0.3); }
+  }
+
+
+  .bg-glow {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .bg-glow span {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    animation: floatGlow 12s ease-in-out infinite alternate;
+  }
+  .bg-glow span:nth-child(1) { width: 500px; height: 500px; background: var(--him); top: -100px; left: -100px; animation-duration: 14s; }
+  .bg-glow span:nth-child(2) { width: 400px; height: 400px; background: var(--her); bottom: -80px; right: -80px; animation-duration: 10s; animation-delay: -4s; }
+  .bg-glow span:nth-child(3) { width: 300px; height: 300px; background: #a78bfa; top: 40%; left: 50%; animation-duration: 16s; animation-delay: -7s; }
+
+  @keyframes floatGlow {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(40px, 30px) scale(1.15); }
+  }
+
+  /* ---- CONTENIDO SOBRE EL FONDO ---- */
+  header, .toggle-row, .section { position: relative; z-index: 1; }
+
+  /* ---- HEADER ---- */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 8vw, 4.5rem);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: pulse-title 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-title {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2) drop-shadow(0 0 12px rgba(255,110,180,0.5)); }
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: fadeUp 1s ease 0.3s both;
+  }
+
+  /* ---- TOGGLE ---- */
+  .toggle-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.8s ease 0.5s both;
+  }
+
+  .toggle-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    padding: 10px 28px;
+    border-radius: 999px;
+    border: 2px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .toggle-btn:hover { transform: scale(1.07); }
+
+  .toggle-btn.him.active {
+    border-color: var(--him);
+    color: var(--bg);
+    background: var(--him);
+    box-shadow: 0 0 20px rgba(232,255,71,0.4);
+    transform: scale(1.05);
+  }
+
+  .toggle-btn.her.active {
+    border-color: var(--her);
+    color: var(--bg);
+    background: var(--her);
+    box-shadow: 0 0 20px rgba(255,110,180,0.4);
+    transform: scale(1.05);
+  }
+
+  /* ---- SECCIONES ---- */
+  .section { display: none; }
+  .section.active { display: block; animation: sectionIn 0.5s ease both; }
+
+  @keyframes sectionIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- GRID ---- */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ---- CARDS ---- */
+  .day-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.25s, box-shadow 0.25s;
+    opacity: 0;
+    animation: cardIn 0.5s ease forwards;
+  }
+
+  .day-card:nth-child(1) { animation-delay: 0.05s; }
+  .day-card:nth-child(2) { animation-delay: 0.12s; }
+  .day-card:nth-child(3) { animation-delay: 0.19s; }
+  .day-card:nth-child(4) { animation-delay: 0.26s; }
+  .day-card:nth-child(5) { animation-delay: 0.33s; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .day-card:hover {
+    transform: translateY(-6px) scale(1.01);
+  }
+
+  .him-section .day-card:hover { border-color: var(--him); box-shadow: 0 8px 32px rgba(232,255,71,0.15); }
+  .her-section .day-card:hover { border-color: var(--her); box-shadow: 0 8px 32px rgba(255,110,180,0.2); }
+
+  /* ---- HEADER CARD ---- */
+  .day-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .day-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .him-section .day-num { color: var(--him); opacity: 0.5; }
+  .her-section .day-num { color: var(--her); opacity: 0.5; }
+
+  .day-info h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+
+  .him-section .day-info h3 { color: var(--him); }
+  .her-section .day-info h3 { color: var(--her); }
+
+  .day-info span {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ---- EJERCICIOS ---- */
+  .exercise-list {
+    padding: 14px 20px 18px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .exercise-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.83rem;
+    line-height: 1.35;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .exercise-list li:hover { background: rgba(255,255,255,0.04); }
+
+  .exercise-list li.checked {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+
+  .exercise-list li.pop {
+    animation: popItem 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes popItem {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  .ex-name { color: var(--text); font-weight: 500; flex: 1; }
+
+  .ex-name .badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 99px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  .badge.new { background: rgba(71,255,212,0.15); color: var(--new); border: 1px solid rgba(71,255,212,0.3); }
+  .badge.mod { background: rgba(255,200,50,0.12); color: #ffc832; border: 1px solid rgba(255,200,50,0.25); }
+  .badge.butt { background: rgba(255,110,180,0.15); color: var(--her); border: 1px solid rgba(255,110,180,0.3); }
+
+  .ex-sets {
+    color: var(--muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    text-align: right;
+    padding-top: 1px;
+  }
+
+  .rest-note {
+    margin: 4px 20px 14px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-style: italic;
+    border-left: 2px solid var(--border);
+    padding-left: 10px;
+  }
+
+  /* ---- PARTÍCULAS CORAZÓN ---- */
+  .heart-particle {
+    position: fixed;
+    pointer-events: none;
+    font-size: 1.2rem;
+    z-index: 9999;
+    animation: floatHeart 1.2s ease forwards;
+    user-select: none;
+  }
+
+  @keyframes floatHeart {
+    0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(-90px) scale(1.6) rotate(20deg); }
+  }
+
+  /* ---- TOAST ---- */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: #1e1e1e;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    z-index: 9998;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ---- KEYFRAMES GENERALES ---- */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- MODAL SEMANA COMPLETA ---- */
+  #week-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9991;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  #week-modal.show { opacity: 1; pointer-events: all; }
+
+  .week-box {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 28px;
+    padding: 40px 28px 32px;
+    text-align: center;
+    max-width: 340px;
+    width: 92%;
+    transform: scale(0.8) translateY(30px);
+    transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+  }
+  #week-modal.show .week-box { transform: scale(1) translateY(0); }
+
+  .week-stars {
+    font-size: 2rem;
+    letter-spacing: 4px;
+    display: block;
+    margin-bottom: 14px;
+    animation: starPop 0.6s ease 0.3s both;
+  }
+  @keyframes starPop {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .week-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.06em;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+    line-height: 1.1;
+  }
+  .week-msg {
+    font-size: 0.84rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .week-audio-wrap {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #week-audio-player { display: none; width: 100%; }
+  #week-audio-player.visible { display: block; }
+  .no-audio-msg {
+    font-size: 0.75rem;
+    color: #444;
+    font-style: italic;
+  }
+  .week-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    padding: 10px 32px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    color: #0d0d0d;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .week-btn:hover { transform: scale(1.05); }
+
+  /* ---- BOTÓN OCULTO GRABACIÓN ---- */
+  #record-btn {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: none;
+    cursor: pointer;
+    z-index: 100;
+    opacity: 0.15;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  #record-btn:hover { opacity: 0.6; transform: scale(1.4); }
+  #record-btn.recording {
+    background: #ff4444;
+    opacity: 1;
+    animation: recPulse 0.8s ease infinite alternate;
+  }
+  @keyframes recPulse {
+    from { box-shadow: 0 0 0 0 rgba(255,68,68,0.6); }
+    to   { box-shadow: 0 0 0 8px rgba(255,68,68,0); }
+  }
+
+  /* ---- PROGRESO SEMANA ---- */
+  .week-progress-bar-wrap {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .wp-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #2a2a2a;
+    transition: background 0.3s;
+  }
+  .wp-dot.him-done { background: var(--him); }
+  .wp-dot.her-done { background: var(--her); }
+
+  
+  #celebrate-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9990;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  #celebrate-modal.show { opacity: 1; pointer-events: all; }
+  .celebrate-box {
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 24px;
+    padding: 36px 32px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    transform: scale(0.85);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+    overflow: hidden;
+  }
+  #celebrate-modal.show .celebrate-box { transform: scale(1); }
+  .celebrate-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(232,255,71,0.05), rgba(255,110,180,0.08));
+    pointer-events: none;
+  }
+  .celebrate-emoji {
+    font-size: 3rem;
+    margin-bottom: 12px;
+    display: block;
+    animation: bounceEmoji 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+  }
+  @keyframes bounceEmoji {
+    from { transform: scale(0) rotate(-20deg); }
+    to   { transform: scale(1) rotate(0deg); }
+  }
+  .celebrate-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.06em;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .celebrate-msg {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+  .celebrate-msg strong { color: var(--text); }
+  .celebrate-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    padding: 10px 32px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    color: #0d0d0d;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+  }
+  .celebrate-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+  .toggle-btn.games.active {
+    border-color: #a78bfa;
+    color: var(--bg);
+    background: #a78bfa;
+    box-shadow: 0 0 20px rgba(167,139,250,0.4);
+    transform: scale(1.05);
+  }
+
+  .games-section { max-width: 500px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .games-menu { display: flex; flex-direction: column; gap: 14px; padding: 8px 0 24px; }
+
+  .game-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, box-shadow 0.2s;
+  }
+  .game-card:hover { transform: translateY(-4px) scale(1.01); border-color: #a78bfa; box-shadow: 0 8px 32px rgba(167,139,250,0.2); }
+  .game-icon { font-size: 2.4rem; line-height: 1; }
+  .game-info h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.06em; color: #a78bfa; margin-bottom: 2px; }
+  .game-info p { font-size: 0.75rem; color: var(--muted); }
+  .game-badge { margin-left: auto; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 99px; background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); text-transform: uppercase; }
+
+  #game-screen { display: none; flex-direction: column; align-items: center; gap: 12px; }
+  #game-screen.visible { display: flex; }
+
+  .game-topbar { width: 100%; display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .back-btn { font-family: 'Bebas Neue', sans-serif; font-size: 0.9rem; letter-spacing: 0.08em; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .back-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+  .game-score-display { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.06em; color: #a78bfa; margin-left: auto; }
+
+  #flappy-canvas { border-radius: 16px; border: 2px solid #2a2a2a; display: block; image-rendering: pixelated; max-width: 100%; cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
+
+  .player-toggle-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 4px; }
+  .player-btn { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 0.08em; padding: 6px 20px; border-radius: 999px; border: 2px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+  .player-btn.him.active { border-color: var(--him); background: var(--him); color: var(--bg); transform: scale(1.05); }
+  .player-btn.her.active { border-color: var(--her); background: var(--her); color: var(--bg); transform: scale(1.05); }
+
+  .canvas-heart { position: fixed; pointer-events: none; z-index: 9999; font-size: 1.1rem; opacity: 0.7; animation: floatCanvasHeart 0.9s ease forwards; }
+  @keyframes floatCanvasHeart { 0% { opacity: 0.7; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-60px) scale(0.5); } }
+
+
+  .game-hint { font-size: 0.75rem; color: var(--muted); text-align: center; letter-spacing: 0.06em; }
+  .highscore-row { display: flex; gap: 20px; font-size: 0.78rem; color: var(--muted); }
+  .highscore-row span { color: var(--text); font-weight: 600; }
+
+  /* ---- MENÚ SKINS ---- */
+  #skin-screen { display: none; flex-direction: column; align-items: center; gap: 16px; }
+  #skin-screen.visible { display: flex; }
+
+  .skin-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, #a78bfa, #ff6eb4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+  }
+  .skin-subtitle { font-size: 0.75rem; color: var(--muted); text-align: center; margin-top: -8px; }
+
+  .skin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+  }
+
+  .skin-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+  .skin-card:hover { transform: translateY(-4px) scale(1.03); }
+  .skin-card.selected { border-color: #a78bfa; box-shadow: 0 0 16px rgba(167,139,250,0.35); }
+  .skin-card .skin-preview { width: 64px; height: 64px; }
+  .skin-card .skin-name { font-family: 'Bebas Neue', sans-serif; font-size: 0.75rem; letter-spacing: 0.06em; color: var(--text); text-align: center; line-height: 1.2; }
+  .skin-card .skin-check {
+    position: absolute; top: 6px; right: 8px;
+    font-size: 0.75rem; opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .skin-card.selected .skin-check { opacity: 1; }
+
+  .skin-card.locked { opacity: 0.7; cursor: not-allowed; }
+  .skin-card.locked:hover { transform: none; border-color: var(--border); box-shadow: none; }
+  .skin-card .skin-desc { font-size: 0.62rem; color: var(--muted); text-align: center; line-height: 1.3; }
+
+  .god-card {
+    background: linear-gradient(135deg, #1a1400, #2a2000);
+    border-color: #ffd700 !important;
+    box-shadow: 0 0 20px rgba(255,215,0,0.2);
+    animation: godPulse 2s ease-in-out infinite;
+  }
+  @keyframes godPulse {
+    0%,100% { box-shadow: 0 0 20px rgba(255,215,0,0.2); }
+    50%      { box-shadow: 0 0 35px rgba(255,215,0,0.5); }
+  }
+  .god-card .skin-name { color: #ffd700 !important; }
+
+  /* Botón revivir */
+  #revive-btn {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    padding: 10px 28px;
+    border-radius: 999px;
+    border: 2px solid #ffd700;
+    background: rgba(255,215,0,0.15);
+    color: #ffd700;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+    animation: revivePulse 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes revivePulse {
+    from { box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+    to   { box-shadow: 0 0 25px rgba(255,215,0,0.9); }
+  }
+
+  /* Flash de destrucción */
+  #destroy-flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,215,0,0);
+    pointer-events: none;
+    border-radius: 16px;
+    transition: background 0.1s;
+    z-index: 5;
+  }
+  #destroy-flash.flash { background: rgba(255,215,0,0.6); }
+
+  #game-screen { position: relative; }
+
+  .skin-play-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    padding: 12px 40px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, #a78bfa, #ff6eb4);
+    color: #0d0d0d;
+    cursor: pointer;
+    transition: transform 0.2s, filter 0.2s;
+    width: 100%;
+  }
+  .skin-play-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+
+  /* ---- DJ NOTAS PARTICULAS ---- */
+  .dj-note-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    font-size: 1.1rem;
+    animation: djNoteFly 0.8s ease forwards;
+    user-select: none;
+    color: #a78bfa;
+    text-shadow: 0 0 8px rgba(167,139,250,0.9), 0 0 16px rgba(232,255,71,0.5);
+  }
+  @keyframes djNoteFly {
+    0%   { opacity: 1; transform: translate(0, 0) scale(1.2); }
+    60%  { opacity: 0.8; transform: translate(var(--dx), var(--dy)) scale(1); }
+    100% { opacity: 0;   transform: translate(calc(var(--dx)*1.4), calc(var(--dy)*1.4)) scale(0.5); }
+  }
+
+  /* ---- TIMER DE DESCANSO ---- */
+  #rest-timer-fab {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9990;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 999px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  #rest-timer-fab.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #rest-timer-fab:hover { transform: translateX(-50%) scale(1.04); }
+  #rest-timer-fab.running {
+    border-color: var(--him);
+    box-shadow: 0 0 20px rgba(232,255,71,0.3);
+  }
+  #rest-timer-fab.done {
+    border-color: #4ade80;
+    box-shadow: 0 0 20px rgba(74,222,128,0.4);
+    animation: timerDonePulse 0.4s ease 3;
+  }
+  @keyframes timerDonePulse {
+    0%,100% { transform: translateX(-50%) scale(1); }
+    50%     { transform: translateX(-50%) scale(1.06); }
+  }
+  .rest-timer-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .rest-timer-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.04em;
+    color: var(--him);
+    line-height: 1;
+    min-width: 60px;
+    text-align: center;
+    transition: color 0.3s;
+  }
+  .rest-timer-display.done { color: #4ade80; }
+  .rest-timer-btn-row { display: flex; gap: 6px; align-items: center; }
+  .rt-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid #333;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .rt-btn:hover { border-color: var(--him); color: var(--him); }
+  .rt-btn.primary { border-color: var(--him); color: var(--him); background: rgba(232,255,71,0.08); }
+  #rt-close {
+    font-size: 0.9rem;
+    color: #444;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  #rt-close:hover { color: #888; }
+  .rt-arc-wrap { position: relative; width: 36px; height: 36px; flex-shrink: 0; }
+  .rt-arc-svg { width: 36px; height: 36px; transform: rotate(-90deg); }
+  .rt-arc-bg { fill: none; stroke: #222; stroke-width: 3; }
+  .rt-arc-fill { fill: none; stroke: var(--him); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.3s; stroke-dasharray: 100; stroke-dashoffset: 100; }
+  .rt-arc-fill.done { stroke: #4ade80; }
+
+  /* ---- PANEL ESTADÍSTICAS ---- */
+  #stats-panel {
+    position: fixed;
+    top: 0; right: 0;
+    height: 100%;
+    width: min(320px, 90vw);
+    background: #111;
+    border-left: 1px solid #2a2a2a;
+    z-index: 9995;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    overflow-y: auto;
+    padding: 24px 20px 40px;
+  }
+  #stats-panel.open { transform: translateX(0); }
+  #stats-overlay {
+    position: fixed; inset: 0; z-index: 9994;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  #stats-overlay.open { opacity: 1; pointer-events: all; }
+
+  .stats-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .stats-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem; letter-spacing: 0.08em;
+    background: linear-gradient(135deg, var(--him), var(--her));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  #stats-close { font-size: 1.4rem; background: none; border: none; color: #555; cursor: pointer; transition: color 0.2s; }
+  #stats-close:hover { color: #aaa; }
+
+  .stats-section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.85rem; letter-spacing: 0.12em; color: var(--muted);
+    text-transform: uppercase; margin: 20px 0 10px;
+    border-bottom: 1px solid #1e1e1e; padding-bottom: 6px;
+  }
+
+  .stats-streak-row {
+    display: flex; gap: 10px; margin-bottom: 6px;
+  }
+  .streak-card {
+    flex: 1; background: #161616; border: 1px solid #2a2a2a;
+    border-radius: 14px; padding: 14px 12px; text-align: center;
+  }
+  .streak-emoji { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+  .streak-num {
+    font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1;
+    display: block; letter-spacing: 0.04em;
+  }
+  .streak-num.him { color: var(--him); }
+  .streak-num.her { color: var(--her); }
+  .streak-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .stats-week-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .stats-day-chip {
+    background: #161616; border: 1px solid #2a2a2a;
+    border-radius: 10px; padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px; font-size: 0.75rem;
+  }
+  .sdc-num { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: var(--muted); }
+  .sdc-progress { flex: 1; }
+  .sdc-bar-wrap { height: 4px; background: #222; border-radius: 99px; margin-top: 2px; overflow: hidden; }
+  .sdc-bar { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+  .him-bar { background: var(--him); }
+  .her-bar { background: var(--her); }
+
+  .stats-total-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #161616; border: 1px solid #2a2a2a; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 6px; font-size: 0.82rem;
+  }
+  .stats-total-label { color: var(--muted); }
+  .stats-total-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--text); }
+
+  .stats-fab {
+    position: fixed; top: 20px; right: 16px; z-index: 9993;
+    background: #161616; border: 1px solid #2a2a2a;
+    border-radius: 999px; padding: 7px 14px;
+    font-size: 0.75rem; font-family: 'DM Sans', sans-serif;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.05em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stats-fab:hover { border-color: var(--her); color: var(--her); }
+
+  /* Ocultar el record-btn para no solaparlo */
+  #record-btn { bottom: 18px; right: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ===== LOCKSCREEN HUELLA ===== -->
+<div id="lockscreen">
+  <div class="lock-title">Rutina para mí<br>y para mí amor 🥺💓</div>
+  <div class="lock-sub">Toca la huella para entrar</div>
+
+  <div class="fingerprint-wrap" id="fpWrap" onpointerdown="startScan()" onpointerup="cancelScan()" onpointerleave="cancelScan()" onmousedown="startScan()" onmouseup="cancelScan()" onmouseleave="cancelScan()" ontouchstart="startScan()" ontouchend="cancelScan()">
+    <div class="fp-ring"></div>
+    <!-- SVG huella dactilar -->
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- líneas concéntricas estilo huella -->
+      <path class="fp-path" d="M50 18 C34 18 21 31 21 50 C21 69 34 82 50 82 C66 82 79 69 79 50 C79 31 66 18 50 18"/>
+      <path class="fp-path" d="M50 26 C38 26 28 37 28 50 C28 63 38 74 50 74 C62 74 72 63 72 50 C72 37 62 26 50 26"/>
+      <path class="fp-path" d="M50 34 C42 34 35 42 35 50 C35 58 42 66 50 66 C58 66 65 58 65 50 C65 42 58 34 50 34"/>
+      <path class="fp-path" d="M50 42 C46 42 42 46 42 50 C42 54 46 58 50 58 C54 58 58 54 58 50 C58 46 54 42 50 42"/>
+      <path class="fp-path" d="M50 50 L50 50"/>
+      <!-- arcos superiores -->
+      <path class="fp-path" d="M36 32 C36 22 44 16 50 16 C56 16 64 22 64 32"/>
+      <path class="fp-path" d="M30 38 C28 26 38 12 50 12 C62 12 72 26 70 38"/>
+      <path class="fp-path" d="M24 46 C20 30 33 8 50 8 C67 8 80 30 76 46"/>
+      <!-- líneas verticales bajas -->
+      <path class="fp-path" d="M35 66 C33 72 34 80 38 85"/>
+      <path class="fp-path" d="M65 66 C67 72 66 80 62 85"/>
+      <path class="fp-path" d="M42 70 C41 76 42 82 45 87"/>
+      <path class="fp-path" d="M58 70 C59 76 58 82 55 87"/>
+      <path class="fp-path" d="M50 74 L50 88"/>
+    </svg>
+    <!-- partículas -->
+    <div class="fp-burst" id="fpBurst"></div>
+  </div>
+
+  <div class="fp-progress-wrap">
+    <div class="fp-progress-bar" id="fpBar"></div>
+  </div>
+  <div class="fp-status" id="fpStatus">Mantén presionado</div>
+</div>
+
+<div class="bg-glow">
+  <span></span><span></span><span></span>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Modal celebración día -->
+<div id="celebrate-modal">
+  <div class="celebrate-box">
+    <span class="celebrate-emoji" id="celebrate-emoji">🎉</span>
+    <div class="celebrate-title">¡DÍA COMPLETADO!</div>
+    <div class="celebrate-msg" id="celebrate-msg">¡Lo lograste!</div>
+    <button class="celebrate-btn" onclick="closeCelebrate()">¡A seguir! 💪</button>
+  </div>
+</div>
+
+<!-- Modal semana completa -->
+<div id="week-modal">
+  <div class="week-box">
+    <span class="week-stars">⭐⭐⭐⭐⭐</span>
+    <div class="week-title">¡SEMANA COMPLETA!</div>
+    <div class="week-msg">
+      Teo y Wendy completaron<br>
+      <strong style="color:var(--text)">todos los días de la semana</strong> 🥺💓<br>
+      ¡Son una pareja increíble!
+    </div>
+    <div class="week-audio-wrap">
+      <audio id="week-audio-player" controls></audio>
+      <span class="no-audio-msg" id="no-audio-msg">Sin mensaje especial aún 🥺</span>
+    </div>
+    <button class="week-btn" onclick="closeWeekModal()">¡Nueva semana! 🔄</button>
+  </div>
+</div>
+
+<!-- ===== MINIJUEGOS ===== -->
+<div class="section" id="games">
+  <div class="games-section">
+
+    <!-- Menú -->
+    <div class="games-menu" id="games-menu">
+      <div class="game-card" onclick="startFlappy()">
+        <div class="game-icon">🐦</div>
+        <div class="game-info">
+          <h3>Flappy Pareja</h3>
+          <p>Vuela entre las tuberías mientras esperas la serie 😂</p>
+        </div>
+        <div class="game-badge">Pixel Art</div>
+      </div>
+      <div class="game-card" style="opacity:0.4; cursor:not-allowed;">
+        <div class="game-icon">🎯</div>
+        <div class="game-info">
+          <h3>Próximamente</h3>
+          <p>Más juegos llegando pronto 👀</p>
+        </div>
+        <div class="game-badge">Soon</div>
+      </div>
+    </div>
+
+    <!-- Selector de skins -->
+    <div id="skin-screen">
+      <div class="game-topbar">
+        <button class="back-btn" onclick="backToMenu()">← Menú</button>
+      </div>
+      <div class="skin-title">🎨 Elige tu Skin</div>
+      <div class="skin-subtitle">Tu skin se guarda para siempre 💓</div>
+      <div class="skin-grid">
+        <div class="skin-card selected" id="skin-card-default" onclick="selectSkin('default')">
+          <canvas class="skin-preview" id="prev-default"></canvas>
+          <div class="skin-name">Clásico</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card" id="skin-card-doctor" onclick="selectSkin('doctor')">
+          <canvas class="skin-preview" id="prev-doctor"></canvas>
+          <div class="skin-name">Doctora Wendy 🩺</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card" id="skin-card-headphones" onclick="selectSkin('headphones')">
+          <canvas class="skin-preview" id="prev-headphones"></canvas>
+          <div class="skin-name">DJ Beats 🎧</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card" id="skin-card-wings" onclick="selectSkin('wings')">
+          <canvas class="skin-preview" id="prev-wings"></canvas>
+          <div class="skin-name">Alas Grandes 🪽</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card" id="skin-card-blackcat" onclick="selectSkin('blackcat')">
+          <canvas class="skin-preview" id="prev-blackcat"></canvas>
+          <div class="skin-name">Gatito Negro 🐱</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card" id="skin-card-calico" onclick="selectSkin('calico')">
+          <canvas class="skin-preview" id="prev-calico"></canvas>
+          <div class="skin-name">Gatita Calico 🐾</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card" id="skin-card-cyber" onclick="selectSkin('cyber')" style="grid-column: span 3;">
+          <canvas class="skin-preview" id="prev-cyber" style="width:80px;height:80px"></canvas>
+          <div class="skin-name">⚡ CYBER GOD ⚡</div>
+          <div class="skin-check">✅</div>
+        </div>
+        <div class="skin-card god-card" id="skin-card-god" onclick="selectSkin('god')" style="grid-column: span 3;">
+          <canvas class="skin-preview" id="prev-god" style="width:96px;height:96px"></canvas>
+          <div class="skin-name">👑 FLAPPY DIOS 👑</div>
+          <div class="skin-desc">Salta menos · Revive una vez · Destruye obstáculos</div>
+          <div class="skin-check">✅</div>
+        </div>
+      </div>
+      <button class="skin-play-btn" onclick="launchGame()">¡JUGAR! 🚀</button>
+    </div>
+
+    <!-- Pantalla juego -->
+    <div id="game-screen">
+      <div class="game-topbar">
+        <button class="back-btn" onclick="goToSkins()">← Skins</button>
+        <div class="game-score-display">Score: <span id="score-display">0</span></div>
+      </div>
+      <div class="player-toggle-row">
+        <button class="player-btn him active" id="pbtn-him" onclick="setPlayer('him')">💪 Teo</button>
+        <button class="player-btn her" id="pbtn-her" onclick="setPlayer('her')">🍑 Wendy</button>
+      </div>
+      <canvas id="flappy-canvas" width="320" height="480"></canvas>
+      <div id="destroy-flash"></div>
+      <button id="revive-btn" onclick="reviveGod()">👑 REVIVIR</button>
+      <div class="game-hint" id="game-hint">Toca para empezar 🐦</div>
+      <div class="highscore-row">
+        <div>🏆 Teo: <span id="hs-him">0</span></div>
+        <div>🍑 Wendy: <span id="hs-her">0</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Botón oculto grabación -->
+<button id="record-btn" title="Grabar mensaje" onclick="toggleRecord()"></button>
+
+<!-- ===== TIMER DESCANSO ===== -->
+<div id="rest-timer-fab">
+  <div class="rt-arc-wrap">
+    <svg class="rt-arc-svg" viewBox="0 0 36 36">
+      <circle class="rt-arc-bg" cx="18" cy="18" r="15.9"/>
+      <circle class="rt-arc-fill" id="rt-arc" cx="18" cy="18" r="15.9"/>
+    </svg>
+  </div>
+  <div>
+    <div class="rest-timer-label">Descanso</div>
+    <div class="rest-timer-display" id="rt-display">1:30</div>
+  </div>
+  <div class="rest-timer-btn-row">
+    <button class="rt-btn" onclick="setRestTime(60)">1min</button>
+    <button class="rt-btn primary" id="rt-startstop" onclick="toggleRestTimer()">▶</button>
+    <button class="rt-btn" onclick="setRestTime(120)">2min</button>
+  </div>
+  <button id="rt-close" onclick="hideRestTimer()">✕</button>
+</div>
+
+<!-- ===== ESTADÍSTICAS PANEL ===== -->
+<div id="stats-overlay" onclick="closeStats()"></div>
+<div id="stats-panel">
+  <div class="stats-header">
+    <div class="stats-title">📊 Stats</div>
+    <button id="stats-close" onclick="closeStats()">✕</button>
+  </div>
+
+  <div class="stats-section-title">🔥 Racha actual</div>
+  <div class="stats-streak-row">
+    <div class="streak-card">
+      <span class="streak-emoji">💪</span>
+      <span class="streak-num him" id="streak-him">0</span>
+      <span class="streak-label">Días — Teo</span>
+    </div>
+    <div class="streak-card">
+      <span class="streak-emoji">🍑</span>
+      <span class="streak-num her" id="streak-her">0</span>
+      <span class="streak-label">Días — Wendy</span>
+    </div>
+  </div>
+
+  <div class="stats-section-title">📅 Semana actual</div>
+  <div class="stats-week-grid" id="stats-week-grid">
+    <!-- generado por JS -->
+  </div>
+
+  <div class="stats-section-title">🏅 Totales</div>
+  <div class="stats-total-row">
+    <span class="stats-total-label">💪 Ejercicios completados (Teo)</span>
+    <span class="stats-total-val" id="total-him">0</span>
+  </div>
+  <div class="stats-total-row">
+    <span class="stats-total-label">🍑 Ejercicios completados (Wendy)</span>
+    <span class="stats-total-val" id="total-her">0</span>
+  </div>
+  <div class="stats-total-row">
+    <span class="stats-total-label">🏆 Récord Flappy (Teo)</span>
+    <span class="stats-total-val" id="hs-stat-him">0</span>
+  </div>
+  <div class="stats-total-row">
+    <span class="stats-total-label">🏆 Récord Flappy (Wendy)</span>
+    <span class="stats-total-val" id="hs-stat-her">0</span>
+  </div>
+</div>
+
+<!-- FAB para abrir stats -->
+<button class="stats-fab" onclick="openStats()">📊 Stats</button>
+
+
+
+<header>
+  <h1>Rutina para mí y para mí amor 🥺💓</h1>
+  <p>Hecho con amor · Upper · Lower · 5 días · F2 Tren Superior + Inferior</p>
+  <div class="week-progress-bar-wrap" id="week-dots">
+    <div class="wp-dot" id="dot-him-1" title="Teo D1"></div>
+    <div class="wp-dot" id="dot-him-2" title="Teo D2"></div>
+    <div class="wp-dot" id="dot-him-3" title="Teo D3"></div>
+    <div class="wp-dot" id="dot-him-4" title="Teo D4"></div>
+    <div class="wp-dot" id="dot-him-5" title="Teo D5"></div>
+    <div style="width:12px"></div>
+    <div class="wp-dot" id="dot-her-1" title="Wendy D1"></div>
+    <div class="wp-dot" id="dot-her-2" title="Wendy D2"></div>
+    <div class="wp-dot" id="dot-her-3" title="Wendy D3"></div>
+    <div class="wp-dot" id="dot-her-4" title="Wendy D4"></div>
+    <div class="wp-dot" id="dot-her-5" title="Wendy D5"></div>
+  </div>
+</header>
+
+<div class="toggle-row">
+  <button class="toggle-btn him active" onclick="show('him')">💪 Teo</button>
+  <button class="toggle-btn her" onclick="show('her')">🍑 Wendy</button>
+  <button class="toggle-btn games" onclick="show('games')">🎮 Minijuegos</button>
+</div>
+
+<!-- ===== ÉL ===== -->
+<div class="section him-section active" id="him">
+  <div class="week-grid">
+
+    <!-- DÍA 1 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">01</div>
+        <div class="day-info">
+          <h3>UPPER PESADO</h3>
+          <span>Pecho · Espalda · Hombro · Brazos</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Press plano máquina</span><span class="ex-sets">4×6–10 RIR 1–2</span></li>
+        <li><span class="ex-name">Jalón al pecho</span><span class="ex-sets">4×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Remo unilateral máquina</span><span class="ex-sets">3×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Press militar barra</span><span class="ex-sets">3×6–10 RIR 1–2</span></li>
+        <li><span class="ex-name">Elevaciones laterales</span><span class="ex-sets">3×12–15 RIR 0–1</span></li>
+        <li><span class="ex-name">Face pull</span><span class="ex-sets">2–3×15 RIR 0–1</span></li>
+        <li><span class="ex-name">Fondos en paralelas</span><span class="ex-sets">3×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Curl inclinado</span><span class="ex-sets">3×8–12 RIR 1</span></li>
+        <li>
+          <span class="ex-name">Extensión tríceps unilateral apoyado <span class="badge mod">reemplaza katana</span></span>
+          <span class="ex-sets">3×10–12 RIR 1</span>
+        </li>
+        <li>
+          <span class="ex-name">Curl muñeca polea <span class="badge new">antebrazo</span></span>
+          <span class="ex-sets">2×12–15 RIR 0–1</span>
+        </li>
+        <li>
+          <span class="ex-name">Curl braquiorradial supino <span class="badge new">antebrazo</span></span>
+          <span class="ex-sets">2×12–15 RIR 0–1</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- DÍA 2 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">02</div>
+        <div class="day-info">
+          <h3>LOWER — CUÁDRICEPS</h3>
+          <span>Cuádriceps · Femoral · Aductores</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Prensa / Hack squat</span><span class="ex-sets">4×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Extensión de pierna</span><span class="ex-sets">3×12–15 RIR 0–1</span></li>
+        <li>
+          <span class="ex-name">RDL con mancuernas / barra <span class="badge mod">añadido</span></span>
+          <span class="ex-sets">3×8–12 RIR 1–2</span>
+        </li>
+        <li><span class="ex-name">Femoral sentado</span><span class="ex-sets">3×10–12 RIR 1</span></li>
+        <li>
+          <span class="ex-name">Hip thrust <span class="badge new">F2 glúteo</span></span>
+          <span class="ex-sets">3×8–12 RIR 1–2</span>
+        </li>
+        <li><span class="ex-name">Aductores máquina</span><span class="ex-sets">3×12–15 RIR 0–1</span></li>
+        <li><span class="ex-name">Pantorrilla</span><span class="ex-sets">4×12–20 RIR 0–1</span></li>
+      </ul>
+      <p class="rest-note">RDL antes del femoral sentado para no llegar prefatigado</p>
+    </div>
+
+    <!-- DÍA 3 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">03</div>
+        <div class="day-info">
+          <h3>CORE + CARDIO</h3>
+          <span>Abdomen · Movilidad · Corazón</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Dragon flags</span><span class="ex-sets">3×6–10</span></li>
+        <li><span class="ex-name">Crunch en polea / máquina</span><span class="ex-sets">3×10–15</span></li>
+        <li><span class="ex-name">Elevaciones de piernas</span><span class="ex-sets">3×12–15</span></li>
+        <li><span class="ex-name">Pantorrilla extra</span><span class="ex-sets">3×15–20</span></li>
+        <li><span class="ex-name">Movilidad hombro / cadera</span><span class="ex-sets">10–15 min</span></li>
+        <li><span class="ex-name">Cardio moderado</span><span class="ex-sets">20–30 min</span></li>
+      </ul>
+    </div>
+
+    <!-- DÍA 4 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">04</div>
+        <div class="day-info">
+          <h3>UPPER VOLUMEN</h3>
+          <span>Pecho · Espalda · Hombro · Brazos</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Press inclinado máquina</span><span class="ex-sets">3–4×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Jalón neutro</span><span class="ex-sets">3×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Remo máquina / polea</span><span class="ex-sets">3×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Pájaros posterior</span><span class="ex-sets">3×12–15 RIR 0–1</span></li>
+        <li><span class="ex-name">Elevaciones laterales</span><span class="ex-sets">3×12–20 RIR 0</span></li>
+        <li><span class="ex-name">Curl martillo</span><span class="ex-sets">3×10–12 RIR 1</span></li>
+        <li><span class="ex-name">Tríceps polea</span><span class="ex-sets">3×10–12 RIR 1</span></li>
+        <li>
+          <span class="ex-name">Curl muñeca mancuerna (extensión) <span class="badge new">antebrazo</span></span>
+          <span class="ex-sets">2×12–15 RIR 0–1</span>
+        </li>
+      </ul>
+      <p class="rest-note">Braquiorradial ya cubierto por el curl martillo — sin duplicar</p>
+    </div>
+
+    <!-- DÍA 5 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">05</div>
+        <div class="day-info">
+          <h3>LOWER — FEMORAL</h3>
+          <span>Glúteo · Femoral · Cuádriceps</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Hip thrust</span><span class="ex-sets">3×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Femoral acostado / sentado</span><span class="ex-sets">3–4×8–12 RIR 1</span></li>
+        <li><span class="ex-name">Prensa ligera / Goblet squat</span><span class="ex-sets">3×10–12 RIR 1–2</span></li>
+        <li>
+          <span class="ex-name">Aductores máquina <span class="badge new">F2 aductores</span></span>
+          <span class="ex-sets">3×12–15 RIR 0–1</span>
+        </li>
+        <li>
+          <span class="ex-name">Abductores máquina <span class="badge mod">cambia lat. laterales</span></span>
+          <span class="ex-sets">3×12–15 RIR 0–1</span>
+        </li>
+        <li><span class="ex-name">Pantorrilla</span><span class="ex-sets">4×12–20 RIR 0–1</span></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== ELLA ===== -->
+<div class="section her-section" id="her">
+  <div class="week-grid">
+
+    <!-- DÍA 1 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">01</div>
+        <div class="day-info">
+          <h3>UPPER LIGERO</h3>
+          <span>Pecho · Espalda · Hombro · Brazos</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Press plano máquina</span><span class="ex-sets">3×8–12 RIR 2</span></li>
+        <li><span class="ex-name">Jalón al pecho</span><span class="ex-sets">3×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Remo máquina</span><span class="ex-sets">3×10–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Elevaciones laterales</span><span class="ex-sets">3×12–15 RIR 1</span></li>
+        <li><span class="ex-name">Face pull</span><span class="ex-sets">2×15 RIR 1</span></li>
+        <li><span class="ex-name">Curl bíceps</span><span class="ex-sets">2–3×10–12 RIR 1</span></li>
+        <li><span class="ex-name">Tríceps polea</span><span class="ex-sets">2–3×10–12 RIR 1</span></li>
+      </ul>
+    </div>
+
+    <!-- DÍA 2 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">02</div>
+        <div class="day-info">
+          <h3>LOWER PESADO — GLÚTEO</h3>
+          <span>Glúteo · Femoral · Aductores</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Hip thrust</span><span class="ex-sets">4×8–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Sentadilla glúteo</span><span class="ex-sets">4×8–12 RIR 1–2</span></li>
+        <li>
+          <span class="ex-name">RDL rumano <span class="badge mod">reemplaza femoral acostado</span></span>
+          <span class="ex-sets">3×10–12 RIR 1–2</span>
+        </li>
+        <li><span class="ex-name">Femoral sentado</span><span class="ex-sets">4×8–12 RIR 1</span></li>
+        <li><span class="ex-name">Aductores máquina</span><span class="ex-sets">3×12–15 RIR 1</span></li>
+        <li><span class="ex-name">Pantorrilla</span><span class="ex-sets">4×12–20 RIR 0–1</span></li>
+      </ul>
+      <p class="rest-note">RDL activa glúteo + femoral de forma funcional y quema más calorías</p>
+    </div>
+
+    <!-- DÍA 3 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">03</div>
+        <div class="day-info">
+          <h3>CORE + CARDIO</h3>
+          <span>Abdomen · Movilidad · Cardio</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Dragon flags</span><span class="ex-sets">3×6–10</span></li>
+        <li><span class="ex-name">Crunch en polea / máquina</span><span class="ex-sets">3×10–15</span></li>
+        <li><span class="ex-name">Elevaciones de piernas</span><span class="ex-sets">3×12–15</span></li>
+        <li><span class="ex-name">Pantorrilla extra</span><span class="ex-sets">3×15–20</span></li>
+        <li><span class="ex-name">Movilidad hombro / cadera</span><span class="ex-sets">10–15 min</span></li>
+        <li>
+          <span class="ex-name">Cardio moderado <span class="badge mod">sin HIIT por ahora</span></span>
+          <span class="ex-sets">20–30 min</span>
+        </li>
+      </ul>
+      <p class="rest-note">Caminar inclinado, bici o elíptica — no interfiere con la recuperación muscular</p>
+    </div>
+
+    <!-- DÍA 4 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">04</div>
+        <div class="day-info">
+          <h3>UPPER LIGERO V2</h3>
+          <span>Pecho · Espalda · Hombro</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Press inclinado máquina</span><span class="ex-sets">3×10–12 RIR 2</span></li>
+        <li><span class="ex-name">Jalón al pecho</span><span class="ex-sets">3×10–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Remo máquina</span><span class="ex-sets">3×10–12 RIR 1–2</span></li>
+        <li><span class="ex-name">Elevaciones laterales</span><span class="ex-sets">3×12–15 RIR 1</span></li>
+        <li>
+          <span class="ex-name">Face pull <span class="badge new">añadido</span></span>
+          <span class="ex-sets">2×15 RIR 1</span>
+        </li>
+        <li>
+          <span class="ex-name">Curl bíceps <span class="badge new">F2 bíceps</span></span>
+          <span class="ex-sets">2×10–12 RIR 1</span>
+        </li>
+        <li>
+          <span class="ex-name">Tríceps polea <span class="badge new">F2 tríceps</span></span>
+          <span class="ex-sets">2×10–12 RIR 1</span>
+        </li>
+      </ul>
+      <p class="rest-note">Kickback movido al Día 5 donde tiene más contexto</p>
+    </div>
+
+    <!-- DÍA 5 -->
+    <div class="day-card">
+      <div class="day-header">
+        <div class="day-num">05</div>
+        <div class="day-info">
+          <h3>LOWER VOLUMEN — GLÚTEO</h3>
+          <span>Glúteo · Femoral · Cuádriceps</span>
+        </div>
+      </div>
+      <ul class="exercise-list">
+        <li><span class="ex-name">Hip thrust</span><span class="ex-sets">4×10–12 RIR 1</span></li>
+        <li>
+          <span class="ex-name">Kickback glúteo <span class="badge butt">🍑 movido aquí</span></span>
+          <span class="ex-sets">3×12–15 RIR 0–1</span>
+        </li>
+        <li><span class="ex-name">Femoral acostado / sentado</span><span class="ex-sets">3–4×10–12 RIR 1</span></li>
+        <li><span class="ex-name">Sentadilla ligera</span><span class="ex-sets">3×12 RIR 1–2</span></li>
+        <li>
+          <span class="ex-name">Aductores máquina <span class="badge new">F2 aductores</span></span>
+          <span class="ex-sets">3×12–15 RIR 0–1</span>
+        </li>
+        <li><span class="ex-name">Pantorrilla</span><span class="ex-sets">4×15–20 RIR 0–1</span></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+
+
+<script>
+  // ===== AUDIO (un solo contexto) =====
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playTone(freq, type = 'sine', duration = 0.12, vol = 0.15) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playScanSound() {
+    audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+    osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 2.2);
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.3);
+    osc.start(); osc.stop(audioCtx.currentTime + 2.3);
+  }
+
+  function playSuccessSound() {
+    [523, 659, 784, 1046].forEach((f, i) => {
+      setTimeout(() => playTone(f, 'sine', 0.25, 0.12), i * 100);
+    });
+  }
+
+  function playCheck() {
+    playTone(520, 'sine', 0.08, 0.12);
+    setTimeout(() => playTone(780, 'sine', 0.1, 0.1), 60);
+  }
+
+  function playUncheck() { playTone(400, 'sine', 0.1, 0.08); }
+
+  function playSwitch() {
+    playTone(300, 'triangle', 0.06, 0.1);
+    setTimeout(() => playTone(500, 'triangle', 0.1, 0.12), 50);
+  }
+
+  function playHeartSound() {
+    playTone(660, 'sine', 0.07, 0.1);
+    setTimeout(() => playTone(880, 'sine', 0.12, 0.08), 80);
+  }
+
+  // ===== CORAZONES =====
+  const hearts = ['💓','💗','💖','✨','🌸','💕'];
+
+  function spawnHearts(x, y, count = 5) {
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'heart-particle';
+        el.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+        el.style.left = (x + (Math.random() - 0.5) * 60) + 'px';
+        el.style.top  = (y + (Math.random() - 0.5) * 30) + 'px';
+        el.style.fontSize = (0.8 + Math.random() * 0.8) + 'rem';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1300);
+      }, i * 60);
+    }
+  }
+
+  // ===== TOAST =====
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ===== HUELLA =====
+  let scanInterval = null;
+  let progress = 0;
+  const SCAN_DURATION = 2200;
+  const STEPS = 60;
+
+  function startScan() {
+    if (scanInterval) return;
+    audioCtx.resume();
+    const wrap   = document.getElementById('fpWrap');
+    const bar    = document.getElementById('fpBar');
+    const status = document.getElementById('fpStatus');
+    wrap.classList.add('scanning');
+    status.textContent = 'Escaneando...';
+    progress = 0;
+    playScanSound();
+    scanInterval = setInterval(() => {
+      progress += 100 / STEPS;
+      bar.style.width = Math.min(progress, 100) + '%';
+      if (progress >= 100) {
+        clearInterval(scanInterval);
+        scanInterval = null;
+        onScanSuccess();
+      }
+    }, SCAN_DURATION / STEPS);
+  }
+
+  function cancelScan() {
+    if (!scanInterval) return;
+    clearInterval(scanInterval);
+    scanInterval = null;
+    progress = 0;
+    const wrap   = document.getElementById('fpWrap');
+    const bar    = document.getElementById('fpBar');
+    const status = document.getElementById('fpStatus');
+    wrap.classList.remove('scanning');
+    bar.style.width = '0%';
+    status.textContent = 'Mantén presionado';
+  }
+
+  function onScanSuccess() {
+    const wrap   = document.getElementById('fpWrap');
+    const status = document.getElementById('fpStatus');
+    wrap.classList.remove('scanning');
+    wrap.classList.add('success');
+    status.textContent = '¡Acceso concedido! 💓';
+    status.classList.add('ok');
+    playSuccessSound();
+    burstParticles();
+    const rect = wrap.getBoundingClientRect();
+    spawnHearts(rect.left + rect.width / 2, rect.top + rect.height / 2, 10);
+    setTimeout(() => {
+      document.getElementById('lockscreen').classList.add('unlocking');
+      setTimeout(() => { document.getElementById('lockscreen').style.display = 'none'; sayWelcome(); }, 900);
+    }, 800);
+  }
+
+  function burstParticles() {
+    const burst  = document.getElementById('fpBurst');
+    const colors = ['#e8ff47','#ff6eb4','#47ffd4','#fff','#a78bfa'];
+    for (let i = 0; i < 10; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'fp-dot';
+      dot.style.background = colors[i % colors.length];
+      dot.style.setProperty('--a', (i * 36) + 'deg');
+      burst.appendChild(dot);
+      void dot.offsetWidth;
+      dot.classList.add('fire');
+      setTimeout(() => dot.remove(), 800);
+    }
+  }
+
+  // ===== MELODÍA BIENVENIDA =====
+  function sayWelcome() {
+    const notes = [
+      { f: 523.25, t: 0,    d: 0.35 },  // C5
+      { f: 659.25, t: 0.2,  d: 0.35 },  // E5
+      { f: 783.99, t: 0.4,  d: 0.4  },  // G5
+      { f: 1046.5, t: 0.65, d: 0.55 },  // C6
+      { f: 783.99, t: 1.0,  d: 0.3  },  // G5
+      { f: 880.0,  t: 1.25, d: 0.5  },  // A5
+      { f: 1046.5, t: 1.7,  d: 0.8  },  // C6 largo
+    ];
+
+    notes.forEach(({ f, t, d }) => {
+      setTimeout(() => {
+        const osc  = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const pan  = audioCtx.createStereoPanner();
+
+        osc.connect(gain); gain.connect(pan); pan.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        pan.pan.value = (Math.random() - 0.5) * 0.4;
+
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.13, audioCtx.currentTime + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d + 0.25);
+
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + d + 0.3);
+
+        // Armónico suave encima
+        const osc2  = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2); gain2.connect(pan);
+        osc2.type = 'sine';
+        osc2.frequency.value = f * 2;
+        gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain2.gain.linearRampToValueAtTime(0.04, audioCtx.currentTime + 0.04);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d + 0.1);
+        osc2.start(audioCtx.currentTime);
+        osc2.stop(audioCtx.currentTime + d + 0.15);
+      }, t * 1000);
+    });
+  }
+
+  // ===== STORAGE =====
+  const STORAGE_KEY = 'pareja_fit_progress';
+  const AUDIO_KEY   = 'pareja_fit_audio';
+
+  function saveProgress() {
+    const data = {};
+    document.querySelectorAll('.day-card').forEach(card => {
+      const section = card.closest('.section').id;
+      const day     = card.querySelector('.day-num').textContent.trim();
+      const key     = `${section}-${day}`;
+      const checked = [...card.querySelectorAll('.exercise-list li')]
+        .map(li => li.classList.contains('checked'));
+      data[key] = checked;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadProgress() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    document.querySelectorAll('.day-card').forEach(card => {
+      const section = card.closest('.section').id;
+      const day     = card.querySelector('.day-num').textContent.trim();
+      const key     = `${section}-${day}`;
+      if (!data[key]) return;
+      const items = card.querySelectorAll('.exercise-list li');
+      data[key].forEach((done, i) => {
+        if (done && items[i]) items[i].classList.add('checked');
+      });
+    });
+    updateWeekDots();
+  }
+
+  function resetProgress() {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(AUDIO_KEY);
+    document.querySelectorAll('.exercise-list li').forEach(li => li.classList.remove('checked'));
+    updateWeekDots();
+    // Limpiar audio guardado
+    const player = document.getElementById('week-audio-player');
+    player.src = '';
+    player.classList.remove('visible');
+    document.getElementById('no-audio-msg').style.display = '';
+    recordedAudioURL = null;
+  }
+
+  // ===== PROGRESO SEMANAL =====
+  function isDayComplete(sectionId, dayNum) {
+    const card = [...document.querySelectorAll(`#${sectionId} .day-card`)]
+      .find(c => c.querySelector('.day-num').textContent.trim() === dayNum);
+    if (!card) return false;
+    const items = card.querySelectorAll('.exercise-list li');
+    return items.length > 0 && [...items].every(li => li.classList.contains('checked'));
+  }
+
+  function updateWeekDots() {
+    ['1','2','3','4','5'].forEach(d => {
+      const hd = document.getElementById(`dot-him-${d}`);
+      const wd = document.getElementById(`dot-her-${d}`);
+      if (hd) hd.className = 'wp-dot' + (isDayComplete('him', `0${d}`) ? ' him-done' : '');
+      if (wd) wd.className = 'wp-dot' + (isDayComplete('her', `0${d}`) ? ' her-done' : '');
+    });
+  }
+
+  function isWeekComplete() {
+    return ['1','2','3','4','5'].every(d =>
+      isDayComplete('him', `0${d}`) && isDayComplete('her', `0${d}`)
+    );
+  }
+
+  // ===== MODAL SEMANA =====
+  function showWeekModal() {
+    const modal  = document.getElementById('week-modal');
+    const player = document.getElementById('week-audio-player');
+    const noMsg  = document.getElementById('no-audio-msg');
+
+    // Cargar audio si hay guardado
+    const savedAudio = localStorage.getItem(AUDIO_KEY);
+    if (savedAudio) {
+      player.src = savedAudio;
+      player.classList.add('visible');
+      noMsg.style.display = 'none';
+      setTimeout(() => player.play().catch(() => {}), 800);
+    } else {
+      player.classList.remove('visible');
+      noMsg.style.display = '';
+    }
+
+    modal.classList.add('show');
+
+    // Lluvia masiva de corazones
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => spawnHearts(
+        Math.random() * window.innerWidth,
+        Math.random() * window.innerHeight * 0.8, 5
+      ), i * 200);
+    }
+    playSuccessSound();
+  }
+
+  function closeWeekModal() {
+    document.getElementById('week-modal').classList.remove('show');
+    resetProgress();
+    showToast('¡Nueva semana, a romperla! 🔥');
+  }
+
+  // ===== GRABACIÓN DE VOZ =====
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recordedAudioURL = null;
+
+  async function toggleRecord() {
+    const btn = document.getElementById('record-btn');
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      btn.classList.remove('recording');
+      showToast('✅ Mensaje guardado 💓');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          localStorage.setItem(AUDIO_KEY, reader.result);
+          recordedAudioURL = reader.result;
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+      mediaRecorder.start();
+      btn.classList.add('recording');
+      showToast('🔴 Grabando... toca de nuevo para parar');
+    } catch {
+      showToast('No se pudo acceder al micrófono 😅');
+    }
+  }
+
+  // Cargar audio al inicio
+  window.addEventListener('load', () => {
+    recordedAudioURL = localStorage.getItem(AUDIO_KEY);
+  });
+
+  // ===== TOGGLE (actualizado con games) =====
+  function show(who) {
+    audioCtx.resume();
+    playSwitch();
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(who).classList.add('active');
+    document.querySelector('.toggle-btn.' + who).classList.add('active');
+    if (who === 'games') {
+      showToast('¡A jugar mientras esperan! 🎮');
+      stopFlappy();
+    } else {
+      showToast('Viendo rutina de ' + (who === 'him' ? 'Teo 💪' : 'Wendy 🍑'));
+    }
+  }
+
+  // ===== FLAPPY BIRD PIXEL ART =====
+  const canvas  = document.getElementById('flappy-canvas');
+  const ctx2d   = canvas.getContext('2d');
+  const W = 320, H = 480;
+  const PIPE_W = 36, PIPE_GAP = 130, PIPE_SPEED = 2.2;
+  const GRAVITY = 0.38, JUMP = -7.2;
+  const GROUND_H = 40;
+
+  let flappyState = 'idle'; // idle | playing | dead
+  let bird, pipes, score, frameCount, animFrame;
+
+  // Paleta pixel art
+  const PAL = {
+    sky1: '#1a1a2e', sky2: '#16213e',
+    pipe: '#a78bfa', pipeDark: '#7c3aed', pipeLight: '#c4b5fd',
+    bird1: '#e8ff47', bird2: '#b8cc20', birdEye: '#0d0d0d', birdBeak: '#ff6eb4',
+    ground: '#2a2a2a', groundLine: '#3a3a3a',
+    star: '#ffffff',
+  };
+
+  // Estrellas fijas de fondo
+  const stars = Array.from({length: 30}, () => ({
+    x: Math.random() * W,
+    y: Math.random() * (H - GROUND_H - 60),
+    r: Math.random() < 0.3 ? 2 : 1,
+    blink: Math.random() * Math.PI * 2
+  }));
+
+  // ===== PODER DIVINO =====
+  let godReviveUsed = false;
+
+  function resetFlappy() {
+    bird = { x: 70, y: H / 2, vy: 0, angle: 0, frame: 0, frameTimer: 0 };
+    pipes = [];
+    score = 0;
+    frameCount = 0;
+    godReviveUsed = false;
+    godShockwaves = [];
+    djShockwaves = [];
+    djJumps = 0;
+    djBarFilled = false;
+    djDashing = false;
+    djDashFrames = 0;
+    djDashInvuln = false;
+    syringes = [];
+    syringesCollected = 0;
+    pipesPassed = 0;
+    doctorMonsterMode = false;
+    doctorMonsterFrames = 0;
+    doctorInvulnFrames = 0;
+    scheduleSyringe();
+    document.getElementById('score-display').textContent = '0';
+    document.getElementById('revive-btn').style.display = 'none';
+  }
+
+  // ===== TOUCH TRACKING =====
+  let activeTouches = 0;
+
+  function flap() {
+    if (flappyState === 'dead') return;
+    if (flappyState === 'idle') { flappyState = 'playing'; }
+    bird.vy = currentSkin === 'god' ? JUMP * 0.82 : JUMP;
+    playTone(880, 'sine', 0.06, 0.08);
+
+    if (currentSkin === 'headphones') {
+      spawnDJShockwave();
+      djJumps++;
+      if (djJumps >= DJ_BAR_MAX && !djBarFilled) {
+        djBarFilled = true;
+        showToast('🎵 ¡BARRA LLENA! 2 dedos = DASH');
+        playTone(1046, 'sine', 0.15, 0.2);
+        setTimeout(() => playTone(1318, 'sine', 0.15, 0.2), 100);
+      }
+    }
+    if (currentSkin === 'god') {
+      spawnGodShockwave();
+    }
+  }
+
+  // ===== PODER FLAPPY DIOS: ONDA DORADA =====
+  let godShockwaves = [];
+
+  function spawnGodShockwave() {
+    // Onda de choque triple dorada
+    godShockwaves.push({ x: bird.x, y: bird.y, r: 5,  maxR: 80,  alpha: 1, color: '#ffd700', lw: 3 });
+    godShockwaves.push({ x: bird.x, y: bird.y, r: 2,  maxR: 50,  alpha: 0.7, color: '#fff8c0', lw: 1.5, delay: 3 });
+    // Sonido divino
+    playTone(698, 'sine', 0.1, 0.08);
+    setTimeout(() => playTone(880, 'sine', 0.08, 0.06), 50);
+  }
+
+  function drawGodShockwaves() {
+    godShockwaves = godShockwaves.filter(w => w.alpha > 0.02);
+    godShockwaves.forEach(w => {
+      if (w.delay > 0) { w.delay--; return; }
+      w.r += 4;
+      w.alpha = Math.max(0, 1 - w.r / w.maxR);
+      ctx2d.save();
+      ctx2d.globalAlpha = w.alpha * 0.85;
+      ctx2d.strokeStyle = w.color;
+      ctx2d.lineWidth = w.lw;
+      ctx2d.shadowColor = '#ffd700';
+      ctx2d.shadowBlur = 8;
+      ctx2d.beginPath();
+      ctx2d.arc(w.x, w.y, w.r, 0, Math.PI * 2);
+      ctx2d.stroke();
+      ctx2d.restore();
+    });
+  }
+
+  // Revivir con explosión dorada épica
+  function reviveGod() {
+    if (godReviveUsed) return;
+    godReviveUsed = true;
+    document.getElementById('revive-btn').style.display = 'none';
+
+    // Flash dorado de pantalla completa
+    const flash = document.getElementById('destroy-flash');
+    flash.style.background = 'rgba(255,215,0,0.85)';
+    flash.style.transition = 'background 0s';
+    setTimeout(() => {
+      flash.style.transition = 'background 0.6s';
+      flash.style.background = 'rgba(255,215,0,0)';
+    }, 80);
+
+    // Onda de choque gigante desde el centro
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        godShockwaves.push({ x: W/2, y: H/2, r: 5 + i*8, maxR: 200, alpha: 1, color: i%2===0?'#ffd700':'#fff8c0', lw: 4-i*0.5, delay: 0 });
+      }, i * 60);
+    }
+
+    // Destruir pipes con partículas doradas
+    const nearPipes = [...pipes].slice(0, 3);
+    nearPipes.forEach((p, i) => {
+      setTimeout(() => {
+        pipes = pipes.filter(x => x !== p);
+        for (let j = 0; j < 8; j++) {
+          spawnHearts(
+            canvas.getBoundingClientRect().left + p.x + PIPE_W / 2,
+            canvas.getBoundingClientRect().top + p.top + PIPE_GAP / 2, 3
+          );
+        }
+        playTone(1400 - i * 200, 'square', 0.15, 0.12);
+      }, i * 100);
+    });
+
+    setTimeout(() => {
+      bird.y = H / 2;
+      bird.vy = JUMP * 0.5;
+      flappyState = 'playing';
+      animFrame = requestAnimationFrame(gameLoop);
+      showToast('👑 ¡PODER DIVINO ACTIVADO!');
+    }, nearPipes.length * 100 + 150);
+  }
+
+  // ===== PODER DJ PILÍN: ONDA + BARRA + DASH =====
+  const DJ_NOTES = ['♪','♫','♩','♬','🎵','🎶'];
+  const DJ_NOTE_FREQS = [523, 587, 659, 698, 784, 880, 988];
+  const DJ_BAR_MAX = 30;
+  let djShockwaves = [];
+  let djJumps = 0;
+  let djBarFilled = false;
+  let djDashing = false;
+  let djDashFrames = 0;
+  let djDashInvuln = false;
+  const DJ_DASH_DURATION = 40; // frames
+  const DJ_DASH_SPEED = 12;
+
+  function spawnDJShockwave() {
+    const baseFreq = DJ_NOTE_FREQS[Math.floor(Math.random() * DJ_NOTE_FREQS.length)];
+    playTone(baseFreq, 'sine', 0.10, 0.08);
+    setTimeout(() => playTone(baseFreq * 1.25, 'sine', 0.07, 0.06), 40);
+
+    djShockwaves.push({ x: bird.x, y: bird.y, r: 8, maxR: 55, alpha: 1 });
+
+    const rect = canvas.getBoundingClientRect();
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const note = document.createElement('div');
+        note.className = 'dj-note-particle';
+        const angle = (i / 5) * Math.PI * 2;
+        note.textContent = DJ_NOTES[Math.floor(Math.random() * DJ_NOTES.length)];
+        note.style.left = (rect.left + bird.x + Math.cos(angle) * 10) + 'px';
+        note.style.top  = (rect.top  + bird.y + Math.sin(angle) * 10) + 'px';
+        note.style.setProperty('--dx', Math.cos(angle) * (30 + Math.random() * 35) + 'px');
+        note.style.setProperty('--dy', Math.sin(angle) * (30 + Math.random() * 35) + 'px');
+        document.body.appendChild(note);
+        setTimeout(() => note.remove(), 800);
+      }, i * 30);
+    }
+  }
+
+  function activateDJDash() {
+    if (!djBarFilled || djDashing) return;
+    djDashing = true;
+    djDashInvuln = true;
+    djBarFilled = false;
+    djJumps = 0;
+    djDashFrames = DJ_DASH_DURATION;
+    showToast('🎧 ¡DASH ACTIVADO!');
+    // Sonido de dash épico
+    playTone(880, 'square', 0.06, 0.1);
+    setTimeout(() => playTone(1046, 'square', 0.1, 0.15), 60);
+    setTimeout(() => playTone(1318, 'square', 0.08, 0.2), 120);
+  }
+
+  function updateDJDash() {
+    if (!djDashing) return;
+    djDashFrames--;
+    // Avanzar rápido (mover pipes más rápido equivale a que el pájaro avanza)
+    pipes.forEach(p => p.x -= DJ_DASH_SPEED - PIPE_SPEED); // extra speed
+    bird.vy = Math.min(bird.vy, 1); // mantener altura
+    // Partícula de velocidad
+    if (djDashFrames % 4 === 0) {
+      djShockwaves.push({ x: bird.x - 8, y: bird.y, r: 3, maxR: 30, alpha: 0.8, color: '#a78bfa' });
+    }
+    if (djDashFrames <= 0) {
+      djDashing = false;
+      // Al parar: destruir 2 tubos más cercanos
+      const toDestroy = pipes.slice(0, 2);
+      toDestroy.forEach((p, i) => {
+        setTimeout(() => {
+          pipes = pipes.filter(x => x !== p);
+          djShockwaves.push({ x: p.x + PIPE_W/2, y: H/2, r: 5, maxR: 70, alpha: 1, color: '#e8ff47' });
+          playTone(660, 'sine', 0.1, 0.1);
+        }, i * 80);
+      });
+      // 1s de invulnerabilidad extra post-dash
+      setTimeout(() => { djDashInvuln = false; }, 1000);
+      showToast('🎧 Dash terminado');
+    }
+  }
+
+  function drawDJShockwaves() {
+    djShockwaves = djShockwaves.filter(w => w.alpha > 0.02);
+    djShockwaves.forEach(w => {
+      w.r += 3.5;
+      w.alpha = Math.max(0, 1 - w.r / (w.maxR || 55));
+      ctx2d.save();
+      ctx2d.globalAlpha = w.alpha * 0.7;
+      ctx2d.strokeStyle = w.color || '#a78bfa';
+      ctx2d.lineWidth = 2;
+      ctx2d.beginPath();
+      ctx2d.arc(w.x, w.y, w.r, 0, Math.PI * 2);
+      ctx2d.stroke();
+      if (w.r > 12) {
+        ctx2d.globalAlpha = w.alpha * 0.35;
+        ctx2d.strokeStyle = '#e8ff47';
+        ctx2d.lineWidth = 1.5;
+        ctx2d.beginPath();
+        ctx2d.arc(w.x, w.y, w.r - 10, 0, Math.PI * 2);
+        ctx2d.stroke();
+      }
+      ctx2d.restore();
+    });
+  }
+
+  // Barra ecualizador DJ (dibujada en canvas sobre el HUD)
+  function drawDJBar() {
+    if (currentSkin !== 'headphones') return;
+    const BAR_X = 8, BAR_Y = H - GROUND_H - 28;
+    const BAR_W = 80, BAR_H = 20;
+    const COLS = 10;
+    const filled = djBarFilled ? COLS : Math.floor((djJumps / DJ_BAR_MAX) * COLS);
+
+    ctx2d.save();
+    // Fondo
+    ctx2d.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx2d.fillRect(BAR_X - 2, BAR_Y - 2, BAR_W + 4, BAR_H + 4);
+
+    for (let i = 0; i < COLS; i++) {
+      const colX = BAR_X + i * (BAR_W / COLS);
+      const colW = BAR_W / COLS - 1;
+      // Altura del ecualizador animada con sin para efecto bailante
+      const eqH = djBarFilled
+        ? BAR_H * (0.4 + Math.abs(Math.sin(frameCount * 0.18 + i * 0.7)) * 0.6)
+        : (i < filled ? BAR_H * (0.3 + Math.abs(Math.sin(bird.frameTimer * 0.15 + i * 0.8)) * 0.7) : 3);
+
+      const alpha = i < filled || djBarFilled ? 1 : 0.2;
+      const hue = djBarFilled ? `rgba(232,255,71,${alpha})` : `rgba(167,139,250,${alpha})`;
+      ctx2d.fillStyle = hue;
+      ctx2d.fillRect(colX, BAR_Y + BAR_H - eqH, colW, eqH);
+
+      // Brillo top cuando llena
+      if (djBarFilled) {
+        ctx2d.fillStyle = `rgba(255,255,255,${0.3 + Math.abs(Math.sin(frameCount*0.2+i))*0.4})`;
+        ctx2d.fillRect(colX, BAR_Y + BAR_H - eqH, colW, 2);
+      }
+    }
+
+    // Label
+    ctx2d.font = 'bold 7px monospace';
+    ctx2d.fillStyle = djBarFilled ? '#e8ff47' : '#a78bfa';
+    ctx2d.textAlign = 'left';
+    ctx2d.fillText(djBarFilled ? '2 DEDOS=DASH' : `DJ ${djJumps}/${DJ_BAR_MAX}`, BAR_X, BAR_Y - 4);
+
+    // Flash si está en dash
+    if (djDashing) {
+      ctx2d.fillStyle = `rgba(167,139,250,${0.08 + Math.abs(Math.sin(frameCount*0.3))*0.08})`;
+      ctx2d.fillRect(0, 0, W, H);
+    }
+    ctx2d.restore();
+  }
+
+  // ===== PODER DOCTORA WENDY: JERINGAS + MONSTRUO =====
+  let syringes = [];           // jeringas en pantalla
+  let syringesCollected = 0;   // cuántas ha agarrado
+  let nextSyringePipe = 0;     // en qué tubería aparece la siguiente
+  let pipesPassed = 0;         // contador de tuberías pasadas
+  let doctorMonsterMode = false;
+  let doctorMonsterFrames = 0;
+  let doctorInvulnFrames = 0;
+  const SYRINGE_REQUIRED = 10;
+  const MONSTER_DURATION = 240; // 4s @ 60fps
+  const INVULN_DURATION  = 60;  // 1s
+
+  function scheduleSyringe() {
+    nextSyringePipe = pipesPassed + 5 + Math.floor(Math.random() * 6); // 5-10 tubos
+  }
+
+  function spawnSyringe(pipe) {
+    // La jeringa aparece al lado derecho del canvas, alineada con el hueco del tubo
+    const gapCenter = pipe.top + PIPE_GAP / 2;
+    const yOffset = (Math.random() - 0.5) * (PIPE_GAP * 0.5); // dentro del hueco fácilmente
+    syringes.push({ x: W + 10, y: gapCenter + yOffset, collected: false });
+  }
+
+  function drawSyringe(s) {
+    ctx2d.save();
+    ctx2d.translate(s.x, s.y);
+    // Pulso de brillo
+    const pulse = 0.6 + Math.abs(Math.sin(frameCount * 0.12)) * 0.4;
+    ctx2d.globalAlpha = pulse;
+    // Cuerpo jeringa
+    ctx2d.fillStyle = '#e0f0ff';
+    ctx2d.fillRect(-14, -3, 22, 6);
+    // Líquido azul
+    ctx2d.fillStyle = `rgba(50,180,255,${pulse})`;
+    ctx2d.fillRect(-12, -2, 16, 4);
+    // Émbolo
+    ctx2d.fillStyle = '#aaa';
+    ctx2d.fillRect(8, -4, 4, 8);
+    ctx2d.fillRect(10, -6, 2, 12);
+    // Aguja
+    ctx2d.fillStyle = '#ccc';
+    ctx2d.fillRect(-14, -1, 6, 2);
+    // Punta aguja
+    ctx2d.fillStyle = '#999';
+    ctx2d.fillRect(-16, -0.5, 3, 1);
+    // Brillo
+    ctx2d.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx2d.fillRect(-12, -2, 14, 1);
+    // Aura
+    ctx2d.globalAlpha = 0.15 * pulse;
+    ctx2d.fillStyle = '#47d4ff';
+    ctx2d.beginPath();
+    ctx2d.arc(0, 0, 14, 0, Math.PI*2);
+    ctx2d.fill();
+    ctx2d.restore();
+  }
+
+  function drawDoctorBar() {
+    if (currentSkin !== 'doctor') return;
+    const BAR_X = 8, BAR_Y = H - GROUND_H - 28;
+    const SEG = 10;
+    const SEG_W = 6, SEG_GAP = 3, SEG_H = 16;
+
+    ctx2d.save();
+    ctx2d.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx2d.fillRect(BAR_X - 2, BAR_Y - 14, (SEG*(SEG_W+SEG_GAP))+2, SEG_H + 16);
+
+    ctx2d.font = 'bold 7px monospace';
+    ctx2d.fillStyle = '#ff6699';
+    ctx2d.textAlign = 'left';
+    ctx2d.fillText(doctorMonsterMode ? '¡MONSTRUO!' : `💉 ${syringesCollected}/${SYRINGE_REQUIRED}`, BAR_X, BAR_Y - 4);
+
+    for (let i = 0; i < SEG; i++) {
+      const x = BAR_X + i * (SEG_W + SEG_GAP);
+      const filled = i < syringesCollected;
+      const flash = doctorMonsterMode && Math.sin(frameCount * 0.3 + i * 0.5) > 0;
+      ctx2d.fillStyle = doctorMonsterMode
+        ? (flash ? '#ff4444' : '#ff8800')
+        : (filled ? '#ff3366' : '#333');
+      ctx2d.fillRect(x, BAR_Y, SEG_W, SEG_H);
+      if (filled && !doctorMonsterMode) {
+        ctx2d.fillStyle = 'rgba(255,100,150,0.5)';
+        ctx2d.fillRect(x, BAR_Y, SEG_W, 2);
+      }
+    }
+    // Invuln flash
+    if (doctorInvulnFrames > 0) {
+      ctx2d.fillStyle = `rgba(255,255,255,${0.1 + Math.sin(frameCount*0.5)*0.08})`;
+      ctx2d.fillRect(0, 0, W, H);
+    }
+    ctx2d.restore();
+  }
+
+  function activateDoctorMonster() {
+    doctorMonsterMode = true;
+    doctorMonsterFrames = MONSTER_DURATION;
+    syringesCollected = 0;
+    showToast('💉 ¡MODO MONSTRUO! 4s');
+    // Sonido de transformación
+    [200,300,500,800,1200].forEach((f,i) => setTimeout(() => playTone(f,'sawtooth',0.15,0.12), i*60));
+  }
+
+  function updateDoctorPowers() {
+    if (currentSkin !== 'doctor') return;
+
+    // Mover jeringas
+    syringes.forEach(s => s.x -= PIPE_SPEED);
+    syringes = syringes.filter(s => s.x > -30 && !s.collected);
+
+    // Colisión jeringa
+    syringes.forEach(s => {
+      if (Math.abs(s.x - bird.x) < 18 && Math.abs(s.y - bird.y) < 16) {
+        s.collected = true;
+        syringesCollected++;
+        playTone(880, 'sine', 0.08, 0.1);
+        setTimeout(() => playTone(1046, 'sine', 0.06, 0.08), 60);
+        showToast(`💉 ${syringesCollected}/${SYRINGE_REQUIRED}`);
+        if (syringesCollected >= SYRINGE_REQUIRED) {
+          activateDoctorMonster();
+        }
+      }
+    });
+
+    // Modo monstruo
+    if (doctorMonsterMode) {
+      doctorMonsterFrames--;
+      // Destruir pipes al tocarlos
+      pipes = pipes.filter(p => {
+        const hits = bird.x + 22 > p.x && bird.x - 22 < p.x + PIPE_W;
+        if (hits) {
+          playTone(300, 'sawtooth', 0.1, 0.08);
+          for (let i = 0; i < 4; i++) spawnHearts(
+            canvas.getBoundingClientRect().left + p.x + PIPE_W/2,
+            canvas.getBoundingClientRect().top + H/2, 2
+          );
+        }
+        return !hits;
+      });
+      if (doctorMonsterFrames <= 0) {
+        doctorMonsterMode = false;
+        doctorInvulnFrames = INVULN_DURATION;
+        showToast('🛡️ 1s invulnerable');
+      }
+    }
+
+    if (doctorInvulnFrames > 0) doctorInvulnFrames--;
+  }
+
+
+
+  // ===== SISTEMA DE SKINS CON DESBLOQUEOS =====
+  let currentSkin = localStorage.getItem('flappy_skin') || 'default';
+
+  const SKINS = {
+    default:    { name: 'Clásico 🐦',       cost: 0,  draw: drawSkinDefault },
+    doctor:     { name: 'Doctora Wendy 🩺',  cost: 15, draw: drawSkinDoctor },
+    headphones: { name: 'DJ Pilín 🎧',       cost: 15, draw: drawSkinHeadphones },
+    wings:      { name: 'Angelito 🪽',        cost: 25, draw: drawSkinWings },
+    blackcat:   { name: 'Sombrita 🐱',        cost: 30, draw: drawSkinBlackCat },
+    calico:     { name: 'Pelú 💓',            cost: 30, draw: drawSkinCalico },
+    cyber:      { name: 'Cyber God ⚡',       cost: 40, draw: drawSkinCyber },
+    god:        { name: '👑 FLAPPY DIOS 👑',  cost: 999, draw: drawSkinGod },
+  };
+
+  function getBestScore() {
+    const hs = JSON.parse(localStorage.getItem('flappy_hs') || '{"him":0,"her":0}');
+    return Math.max(hs.him, hs.her);
+  }
+
+  function isSkinUnlocked(id) {
+    const best = getBestScore();
+    // Flappy Dios: se desbloquea con un easter egg secreto
+    if (id === 'god') return localStorage.getItem('flappy_god_unlocked') === '1';
+    return best >= SKINS[id].cost;
+  }
+
+  function selectSkin(id) {
+    if (!isSkinUnlocked(id)) {
+      const cost = SKINS[id].cost;
+      showToast(`🔒 Necesitas ${cost} de récord para desbloquear`);
+      return;
+    }
+    currentSkin = id;
+    localStorage.setItem('flappy_skin', id);
+    renderAllPreviews();
+    showToast(`✅ Skin "${SKINS[id].name}" equipada!`);
+  }
+
+  function renderPreview(id) {
+    const c = document.getElementById(`prev-${id}`);
+    if (!c) return;
+    const cx = c.getContext('2d');
+    const s = id === 'god' ? 80 : 64;
+    c.width = s; c.height = s;
+    cx.clearRect(0, 0, s, s);
+    cx.fillStyle = '#1a1a2e';
+    cx.fillRect(0, 0, s, s);
+    const unlocked = isSkinUnlocked(id);
+    cx.save();
+    cx.translate(s / 2, s / 2);
+    if (unlocked) {
+      SKINS[id].draw(cx, Date.now() / 16, false);
+    } else {
+      // Bloqueado: silueta gris + candado
+      cx.globalAlpha = 0.25;
+      SKINS[id].draw(cx, 0, false);
+      cx.globalAlpha = 1;
+      cx.fillStyle = '#666';
+      cx.font = '18px monospace';
+      cx.textAlign = 'center';
+      cx.fillText('🔒', 0, 7);
+      cx.font = '8px monospace';
+      cx.fillStyle = '#888';
+      cx.fillText(id === 'god' ? '???' : `${SKINS[id].cost}pts`, 0, 22);
+    }
+    cx.restore();
+    // Borde seleccionada
+    const card = document.getElementById(`skin-card-${id}`);
+    if (card) {
+      card.classList.toggle('selected', currentSkin === id && unlocked);
+      card.classList.toggle('locked', !unlocked);
+    }
+  }
+
+  function renderAllPreviews() {
+    Object.keys(SKINS).forEach(id => renderPreview(id));
+  }
+
+  // Animar previews en loop
+  let previewAnimFrame;
+  function animatePreviews() {
+    const skinScreen = document.getElementById('skin-screen');
+    if (!skinScreen.classList.contains('visible')) { previewAnimFrame = null; return; }
+    renderAllPreviews();
+    previewAnimFrame = requestAnimationFrame(animatePreviews);
+  }
+
+  // ---- DIBUJOS DE SKINS ----
+
+  function drawSkinDefault(cx, ft, playing) {
+    const wingY = playing ? Math.sin(ft * 0.3) * 4 : 0;
+    cx.fillStyle = PAL.bird2;
+    cx.fillRect(-6, 2 + wingY, 8, 5);
+    cx.fillStyle = PAL.bird1;
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+    cx.fillStyle = '#fff9c4';
+    cx.fillRect(-4, -4, 10, 8);
+    cx.fillStyle = '#0d0d0d';
+    cx.fillRect(4, -6, 5, 5);
+    cx.fillStyle = '#fff';
+    cx.fillRect(6, -5, 2, 2);
+    cx.fillStyle = '#ff6eb4';
+    cx.fillRect(10, -2, 6, 4);
+    cx.fillStyle = '#cc4488';
+    cx.fillRect(10, 0, 6, 2);
+  }
+
+  function drawSkinDoctor(cx, ft, playing) {
+    const wingY = playing ? Math.sin(ft * 0.3) * 4 : 0;
+    cx.fillStyle = '#cc4488';
+    cx.fillRect(-6, 2 + wingY, 8, 5);
+    cx.fillStyle = '#ffffff';
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+    cx.fillStyle = '#ffe0f0';
+    cx.fillRect(-4, -4, 10, 8);
+    // Cruz médica
+    cx.fillStyle = '#ff3366';
+    cx.fillRect(-1, -6, 3, 10);
+    cx.fillRect(-4, -3, 9, 3);
+    // Espejo médico plateado
+    cx.fillStyle = '#ddd';
+    cx.fillRect(-9, -13, 12, 5);
+    cx.fillStyle = '#bbb';
+    cx.fillRect(-7, -12, 8, 3);
+    cx.fillStyle = '#888';
+    cx.fillRect(-3, -12, 2, 3);
+    // Ojo
+    cx.fillStyle = '#0d0d0d';
+    cx.fillRect(4, -6, 5, 5);
+    cx.fillStyle = '#fff';
+    cx.fillRect(6, -5, 2, 2);
+    // Pico
+    cx.fillStyle = '#ff6eb4';
+    cx.fillRect(10, -2, 6, 4);
+    cx.fillStyle = '#cc4488';
+    cx.fillRect(10, 0, 6, 2);
+    // Estetoscopio mejorado
+    cx.fillStyle = '#555';
+    cx.fillRect(1, 3, 2, 7);
+    cx.fillRect(3, 9, 5, 2);
+    cx.fillStyle = '#ff3366';
+    cx.fillRect(7, 8, 4, 4);
+    cx.fillStyle = '#ff6699';
+    cx.fillRect(8, 9, 2, 2);
+    // Bolsillo con jeringas
+    cx.fillStyle = '#eee';
+    cx.fillRect(-9, 0, 5, 6);
+    cx.fillStyle = '#ff3366';
+    cx.fillRect(-8, -1, 1, 3);
+    cx.fillStyle = '#3399ff';
+    cx.fillRect(-7, -1, 1, 3);
+  }
+
+  function drawSkinHeadphones(cx, ft, playing) {
+    const wingY = playing ? Math.sin(ft * 0.3) * 5 : 0;
+    const pulse  = Math.sin(ft * 0.18) * 0.5 + 0.5;
+    const pulse2 = Math.sin(ft * 0.25 + 1) * 0.5 + 0.5;
+    const dashGlow = djDashing ? (0.5 + Math.abs(Math.sin(ft*0.4))*0.5) : 0;
+
+    // Aura de dash
+    if (djDashing) {
+      cx.fillStyle = `rgba(167,139,250,${0.12 + dashGlow*0.1})`;
+      cx.fillRect(-22, -18, 44, 36);
+    }
+
+    // Cola/propulsor (con llama si dasheando)
+    cx.fillStyle = djDashing ? `rgba(232,255,71,${0.7+pulse*0.3})` : PAL.bird2;
+    cx.fillRect(-16, -2 + wingY, 10, 6);
+    if (djDashing) {
+      cx.fillStyle = `rgba(255,180,0,${pulse})`;
+      cx.fillRect(-20, -1 + wingY, 5, 4);
+      cx.fillStyle = `rgba(255,255,100,${pulse2})`;
+      cx.fillRect(-23, wingY, 4, 2);
+    }
+
+    // Cuerpo principal
+    cx.fillStyle = djDashing ? '#c0a000' : PAL.bird1;
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+
+    // Pecho con diseño de vinilo/disco
+    cx.fillStyle = '#0a0a1e';
+    cx.fillRect(-6, -6, 12, 12);
+    cx.fillStyle = `rgba(167,139,250,${0.3+pulse*0.4})`;
+    cx.beginPath(); cx.arc(-1, 0, 5, 0, Math.PI*2); cx.fill();
+    cx.fillStyle = `rgba(232,255,71,${0.5+pulse2*0.5})`;
+    cx.beginPath(); cx.arc(-1, 0, 3, 0, Math.PI*2); cx.fill();
+    cx.fillStyle = '#0a0a1e';
+    cx.beginPath(); cx.arc(-1, 0, 1.5, 0, Math.PI*2); cx.fill();
+    // Líneas de disco
+    cx.strokeStyle = `rgba(167,139,250,${0.2+pulse*0.3})`;
+    cx.lineWidth = 0.5;
+    cx.beginPath(); cx.arc(-1, 0, 4, 0, Math.PI*2); cx.stroke();
+
+    // Auriculares pro
+    cx.fillStyle = '#111';
+    cx.fillRect(-15, -12, 6, 12);
+    cx.fillRect(9,   -12, 6, 12);
+    cx.fillRect(-9,  -17, 18, 6);
+    // Almohadillas con glow de color que pulsa
+    const r = Math.floor(100 + pulse*60), g = Math.floor(80 + pulse2*60), b = 250;
+    cx.fillStyle = `rgba(${r},${g},${b},${0.7+pulse*0.3})`;
+    cx.fillRect(-14, -11, 4, 10);
+    cx.fillRect(10,  -11, 4, 10);
+    // LED en auriculares
+    cx.fillStyle = `rgba(0,255,180,${0.6+pulse*0.4})`;
+    cx.fillRect(-13, -13, 2, 2);
+    cx.fillRect(11,  -13, 2, 2);
+    // Detalles plateados arco
+    cx.fillStyle = '#777';
+    cx.fillRect(-8, -16, 14, 2);
+    cx.fillStyle = '#999';
+    cx.fillRect(-13, -9, 2, 5);
+    cx.fillRect(11,  -9, 2, 5);
+    // Cable mic
+    cx.fillStyle = '#222';
+    cx.fillRect(9, -4, 2, 9);
+    cx.fillStyle = `rgba(167,139,250,${0.8+pulse*0.2})`;
+    cx.fillRect(10, 5, 4, 4);
+
+    // Visera con HUD animado
+    cx.fillStyle = '#0a0a1e';
+    cx.fillRect(-8, -10, 16, 4);
+    // Barras de ecualizador mini en la visera
+    for (let i = 0; i < 5; i++) {
+      const h = 1 + Math.abs(Math.sin(ft*0.2 + i*0.8)) * 3;
+      cx.fillStyle = i%2===0 ? `rgba(232,255,71,0.9)` : `rgba(167,139,250,0.9)`;
+      cx.fillRect(-6 + i*3, -7, 2, h);
+    }
+
+    // Ojo con glow
+    cx.fillStyle = '#0d0d0d';
+    cx.fillRect(3, -6, 5, 5);
+    cx.fillStyle = `rgba(167,139,250,${0.6+pulse*0.4})`;
+    cx.fillRect(5, -5, 2, 2);
+    cx.fillStyle = 'rgba(255,255,255,0.8)';
+    cx.fillRect(6, -5, 1, 1);
+
+    // Pico
+    cx.fillStyle = '#ff6eb4';
+    cx.fillRect(10, -2, 6, 4);
+    cx.fillStyle = '#cc4488';
+    cx.fillRect(10, 0, 6, 2);
+
+    // Notas flotando alrededor (animadas)
+    cx.font = '8px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = `rgba(232,255,71,${0.4+pulse*0.6})`;
+    cx.fillText('♪', -1 + Math.sin(ft*0.08)*3, -20 + Math.sin(ft*0.05)*2);
+    cx.fillStyle = `rgba(167,139,250,${0.3+pulse2*0.6})`;
+    cx.fillText('♫', 12 + Math.sin(ft*0.07+1)*2, -15 + Math.cos(ft*0.06)*2);
+    cx.textAlign = 'left';
+  }
+
+  function drawSkinWings(cx, ft, playing) {
+    // Solo las alas se mueven, NO el cuerpo
+    const wingAnim = playing ? Math.sin(ft * 0.28) : Math.sin(ft * 0.05) * 0.3;
+    // Ala izquierda decorativa grande (sin colisión)
+    cx.fillStyle = '#e0d4ff';
+    cx.fillRect(-26, -4 + wingAnim * 8, 16, 4);
+    cx.fillRect(-24, -8 + wingAnim * 8, 12, 4);
+    cx.fillRect(-22, -12 + wingAnim * 8, 8, 4);
+    cx.fillStyle = '#c4b5fd';
+    cx.fillRect(-26, 0 + wingAnim * 8, 16, 4);
+    cx.fillRect(-24, 4 + wingAnim * 8, 12, 4);
+    cx.fillStyle = '#a78bfa';
+    cx.fillRect(-26, -4 + wingAnim * 8, 3, 12);
+    // Ala derecha decorativa grande
+    cx.fillStyle = '#e0d4ff';
+    cx.fillRect(10, -4 - wingAnim * 8, 16, 4);
+    cx.fillRect(12, -8 - wingAnim * 8, 12, 4);
+    cx.fillRect(14, -12 - wingAnim * 8, 8, 4);
+    cx.fillStyle = '#c4b5fd';
+    cx.fillRect(10, 0 - wingAnim * 8, 16, 4);
+    cx.fillRect(12, 4 - wingAnim * 8, 12, 4);
+    cx.fillStyle = '#a78bfa';
+    cx.fillRect(23, -4 - wingAnim * 8, 3, 12);
+    // Halo dorado
+    cx.fillStyle = 'rgba(255,220,50,0.6)';
+    cx.beginPath();
+    cx.arc(0, -14, 8, 0, Math.PI * 2);
+    cx.fill();
+    cx.fillStyle = 'rgba(255,220,50,0.9)';
+    cx.beginPath();
+    cx.arc(0, -14, 6, 0, Math.PI * 2);
+    cx.fill();
+    cx.fillStyle = '#1a1a2e';
+    cx.beginPath();
+    cx.arc(0, -14, 4, 0, Math.PI * 2);
+    cx.fill();
+    // Cuerpo (estático)
+    cx.fillStyle = PAL.bird1;
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+    cx.fillStyle = '#fff9c4';
+    cx.fillRect(-4, -4, 10, 8);
+    cx.fillStyle = '#0d0d0d';
+    cx.fillRect(4, -6, 5, 5);
+    cx.fillStyle = '#fff';
+    cx.fillRect(6, -5, 2, 2);
+    cx.fillStyle = '#ff6eb4';
+    cx.fillRect(10, -2, 6, 4);
+    cx.fillStyle = '#cc4488';
+    cx.fillRect(10, 0, 6, 2);
+  }
+
+  function drawSkinBlackCat(cx, ft, playing) {
+    const tailWag = Math.sin(ft * 0.08) * 3;
+    // Cola animada
+    cx.fillStyle = '#111';
+    cx.fillRect(-16, 4 + tailWag, 5, 3);
+    cx.fillRect(-18, 2 + tailWag, 3, 3);
+    cx.fillRect(-19, tailWag, 3, 3);
+    // Cuerpo
+    cx.fillStyle = '#1a1a1a';
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+    cx.fillStyle = '#2a2a2a';
+    cx.fillRect(-3, -4, 9, 8);
+    // Orejas
+    cx.fillStyle = '#111';
+    cx.fillRect(-9, -14, 6, 7);
+    cx.fillRect(3, -14, 6, 7);
+    cx.fillStyle = '#ff6eb4';
+    cx.fillRect(-8, -13, 4, 4);
+    cx.fillRect(4, -13, 4, 4);
+    // Ojos verdes brillantes
+    const eyeGlow = 0.7 + Math.sin(ft * 0.05) * 0.3;
+    cx.fillStyle = `rgba(0,230,118,${eyeGlow})`;
+    cx.fillRect(2, -5, 5, 4);
+    cx.fillRect(-5, -5, 4, 4);
+    cx.fillStyle = '#003300';
+    cx.fillRect(3, -4, 2, 2);
+    cx.fillRect(-4, -4, 2, 2);
+    cx.fillStyle = 'rgba(255,255,255,0.9)';
+    cx.fillRect(5, -5, 1, 1);
+    cx.fillRect(-2, -5, 1, 1);
+    // Hocico
+    cx.fillStyle = '#333';
+    cx.fillRect(7, -2, 6, 3);
+    // Bigotes animados
+    const bw = Math.sin(ft * 0.06) * 1;
+    cx.fillStyle = '#777';
+    cx.fillRect(-15 + bw, -2, 13, 1);
+    cx.fillRect(8 - bw, -2, 10, 1);
+    cx.fillRect(-13 + bw, 1, 11, 1);
+    cx.fillRect(8 - bw, 1, 8, 1);
+  }
+
+  function drawSkinCalico(cx, ft, playing) {
+    const tailWag = Math.sin(ft * 0.07) * 3;
+    // Cola tricolor animada
+    cx.fillStyle = '#cc7722';
+    cx.fillRect(-16, 4 + tailWag, 5, 3);
+    cx.fillRect(-18, 2 + tailWag, 3, 3);
+    cx.fillStyle = '#222';
+    cx.fillRect(-19, tailWag, 3, 3);
+    // Cuerpo blanco base
+    cx.fillStyle = '#f5f5f5';
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+    // Manchas calico
+    cx.fillStyle = '#cc7722';
+    cx.fillRect(-10, -8, 8, 7);
+    cx.fillRect(4, 2, 6, 6);
+    cx.fillStyle = '#1a1a1a';
+    cx.fillRect(2, -8, 8, 6);
+    cx.fillRect(-10, 4, 5, 4);
+    cx.fillStyle = '#fff';
+    cx.fillRect(-2, -3, 7, 6);
+    // Orejas
+    cx.fillStyle = '#f0e0e0';
+    cx.fillRect(-9, -14, 6, 7);
+    cx.fillRect(3, -14, 6, 7);
+    cx.fillStyle = '#ffaaaa';
+    cx.fillRect(-8, -13, 4, 4);
+    cx.fillRect(4, -13, 4, 4);
+    // Ojos azules brillantes
+    const eyeGlow = 0.7 + Math.sin(ft * 0.05) * 0.3;
+    cx.fillStyle = `rgba(100,181,246,${eyeGlow})`;
+    cx.fillRect(2, -5, 5, 4);
+    cx.fillRect(-5, -5, 4, 4);
+    cx.fillStyle = '#1565c0';
+    cx.fillRect(3, -4, 2, 2);
+    cx.fillRect(-4, -4, 2, 2);
+    cx.fillStyle = 'rgba(255,255,255,0.9)';
+    cx.fillRect(5, -5, 1, 1);
+    cx.fillRect(-2, -5, 1, 1);
+    // Hocico rosado
+    cx.fillStyle = '#ffb6c1';
+    cx.fillRect(7, -2, 6, 3);
+    // Bigotes
+    const bw = Math.sin(ft * 0.06) * 1;
+    cx.fillStyle = '#aaa';
+    cx.fillRect(-15 + bw, -2, 13, 1);
+    cx.fillRect(8 - bw, -2, 10, 1);
+    cx.fillRect(-13 + bw, 1, 11, 1);
+    cx.fillRect(8 - bw, 1, 8, 1);
+    // Corazoncito en el pelaje
+    cx.fillStyle = '#ff6eb4';
+    cx.font = '7px monospace';
+    cx.textAlign = 'center';
+    cx.fillText('♥', -5, 2);
+    cx.textAlign = 'left';
+  }
+
+  function drawSkinCyber(cx, ft, playing) {
+    const glow  = 0.5 + Math.sin(ft * 0.12) * 0.5;
+    const pulse = 0.5 + Math.sin(ft * 0.08) * 0.5;
+    const wingY = playing ? Math.sin(ft * 0.3) * 4 : 0;
+
+    // Propulsor con partículas
+    cx.fillStyle = `rgba(0,255,255,${0.2 + glow * 0.4})`;
+    cx.fillRect(-18, -4 + wingY, 8, 10);
+    cx.fillStyle = `rgba(0,200,255,${glow})`;
+    cx.fillRect(-16, -2 + wingY, 5, 6);
+    cx.fillStyle = `rgba(255,255,255,${glow * 0.5})`;
+    cx.fillRect(-15, wingY, 3, 2);
+
+    // Cuerpo metálico
+    cx.fillStyle = '#0d0d1e';
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+
+    // Placa con degradado visual
+    cx.fillStyle = '#1e1e3e';
+    cx.fillRect(-8, -6, 14, 12);
+    cx.fillStyle = '#2a2a5e';
+    cx.fillRect(-7, -5, 12, 10);
+
+    // Circuitos animados
+    cx.fillStyle = `rgba(0,255,255,${0.4 + glow * 0.6})`;
+    cx.fillRect(-6, -4, 10, 1);
+    cx.fillRect(-6, -1, 10, 1);
+    cx.fillRect(-6, 2, 10, 1);
+    cx.fillRect(-3, -4, 1, 9);
+    cx.fillRect(1, -4, 1, 9);
+    // Nodos parpadeantes
+    cx.fillStyle = `rgba(255,0,128,${pulse})`;
+    cx.fillRect(-3, -4, 2, 2);
+    cx.fillRect(1, 3, 2, 2);
+    cx.fillStyle = `rgba(0,255,128,${1 - pulse})`;
+    cx.fillRect(1, -4, 2, 2);
+    cx.fillRect(-3, 3, 2, 2);
+
+    // Visor holográfico
+    cx.fillStyle = `rgba(255,0,128,${0.6 + pulse * 0.4})`;
+    cx.fillRect(0, -8, 10, 5);
+    cx.fillStyle = `rgba(255,150,220,${0.3 + pulse * 0.2})`;
+    cx.fillRect(1, -7, 8, 3);
+    // Líneas de scaneo
+    const scanLine = Math.floor(ft * 0.2) % 3;
+    cx.fillStyle = `rgba(255,255,255,0.3)`;
+    cx.fillRect(0, -8 + scanLine, 10, 1);
+
+    // Ojo LED
+    cx.fillStyle = `rgba(255,30,30,${0.7 + glow * 0.3})`;
+    cx.fillRect(4, -6, 5, 4);
+    cx.fillStyle = 'rgba(255,255,255,0.9)';
+    cx.fillRect(7, -5, 1, 1);
+
+    // Pico metálico
+    cx.fillStyle = '#777';
+    cx.fillRect(10, -2, 6, 4);
+    cx.fillStyle = `rgba(0,255,255,${glow * 0.5})`;
+    cx.fillRect(10, -2, 6, 1);
+
+    // Antena con esfera parpadeante
+    cx.fillStyle = '#555';
+    cx.fillRect(-1, -16, 2, 8);
+    cx.fillStyle = `rgba(0,255,255,${glow})`;
+    cx.fillRect(-3, -19, 6, 5);
+    cx.fillStyle = `rgba(255,255,255,${glow * 0.8})`;
+    cx.fillRect(-1, -18, 2, 3);
+
+    // Aura exterior
+    cx.fillStyle = `rgba(0,255,255,${0.05 + glow * 0.07})`;
+    cx.fillRect(-14, -10, 3, 20);
+    cx.fillRect(11, -10, 3, 20);
+    cx.fillRect(-10, -12, 20, 3);
+  }
+
+  function drawSkinGod(cx, ft, playing) {
+    const glow  = 0.5 + Math.sin(ft * 0.08) * 0.5;
+    const pulse = 0.5 + Math.sin(ft * 0.05) * 0.5;
+    const wingAnim = playing ? Math.sin(ft * 0.22) : Math.sin(ft * 0.04) * 0.5;
+
+    // Aura divina exterior
+    cx.fillStyle = `rgba(255,220,50,${0.04 + glow * 0.06})`;
+    cx.fillRect(-22, -22, 44, 44);
+    cx.fillStyle = `rgba(255,180,0,${0.03 + glow * 0.04})`;
+    cx.fillRect(-18, -18, 36, 36);
+
+    // Alas divinas (solo alas se mueven)
+    // Ala izquierda
+    cx.fillStyle = `rgba(255,240,150,${0.5 + glow * 0.4})`;
+    cx.fillRect(-28, -6 + wingAnim * 10, 18, 5);
+    cx.fillRect(-26, -11 + wingAnim * 10, 14, 5);
+    cx.fillRect(-24, -16 + wingAnim * 10, 10, 5);
+    cx.fillStyle = `rgba(255,200,0,${0.7 + glow * 0.3})`;
+    cx.fillRect(-28, -1 + wingAnim * 10, 18, 5);
+    cx.fillRect(-26, 4 + wingAnim * 10, 14, 5);
+    // Plumas detalle
+    cx.fillStyle = `rgba(255,255,200,${0.9})`;
+    cx.fillRect(-28, -6 + wingAnim * 10, 3, 10);
+    cx.fillRect(-24, -11 + wingAnim * 10, 2, 8);
+    cx.fillRect(-20, -14 + wingAnim * 10, 2, 6);
+
+    // Ala derecha
+    cx.fillStyle = `rgba(255,240,150,${0.5 + glow * 0.4})`;
+    cx.fillRect(10, -6 - wingAnim * 10, 18, 5);
+    cx.fillRect(12, -11 - wingAnim * 10, 14, 5);
+    cx.fillRect(14, -16 - wingAnim * 10, 10, 5);
+    cx.fillStyle = `rgba(255,200,0,${0.7 + glow * 0.3})`;
+    cx.fillRect(10, -1 - wingAnim * 10, 18, 5);
+    cx.fillRect(12, 4 - wingAnim * 10, 14, 5);
+    cx.fillStyle = `rgba(255,255,200,${0.9})`;
+    cx.fillRect(25, -6 - wingAnim * 10, 3, 10);
+    cx.fillRect(22, -11 - wingAnim * 10, 2, 8);
+    cx.fillRect(18, -14 - wingAnim * 10, 2, 6);
+
+    // Halo triple
+    cx.fillStyle = `rgba(255,220,50,${0.15 + glow * 0.1})`;
+    cx.beginPath(); cx.arc(0, -18, 14, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = `rgba(255,200,0,${0.4 + glow * 0.3})`;
+    cx.beginPath(); cx.arc(0, -18, 10, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = `rgba(255,240,100,${0.8 + glow * 0.2})`;
+    cx.beginPath(); cx.arc(0, -18, 7, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = '#1a1a2e';
+    cx.beginPath(); cx.arc(0, -18, 5, 0, Math.PI * 2); cx.fill();
+    // Estrella en el halo
+    cx.fillStyle = `rgba(255,255,200,${glow})`;
+    cx.font = '6px monospace'; cx.textAlign = 'center';
+    cx.fillText('✦', 0, -16);
+
+    // Cuerpo dorado divino
+    cx.fillStyle = '#ffd700';
+    cx.fillRect(-10, -8, 20, 16);
+    cx.fillRect(-12, -4, 4, 8);
+    cx.fillRect(-8, -10, 16, 4);
+    cx.fillRect(-8, 6, 16, 4);
+
+    // Armadura con detalles
+    cx.fillStyle = `rgba(255,255,200,${0.5 + glow * 0.3})`;
+    cx.fillRect(-8, -6, 14, 12);
+    // Grabados en la armadura
+    cx.fillStyle = `rgba(180,120,0,0.6)`;
+    cx.fillRect(-6, -4, 10, 1);
+    cx.fillRect(-6, 0, 10, 1);
+    cx.fillRect(-6, 4, 10, 1);
+    cx.fillRect(-2, -4, 1, 8);
+    cx.fillRect(1, -4, 1, 8);
+
+    // Joya en el pecho pulsante
+    cx.fillStyle = `rgba(255,50,50,${0.7 + pulse * 0.3})`;
+    cx.fillRect(-2, -2, 4, 4);
+    cx.fillStyle = `rgba(255,150,150,${pulse})`;
+    cx.fillRect(-1, -1, 2, 2);
+
+    // Ojos divinos brillantes
+    cx.fillStyle = `rgba(255,255,100,${0.8 + glow * 0.2})`;
+    cx.fillRect(3, -6, 6, 5);
+    cx.fillStyle = `rgba(255,200,0,${glow})`;
+    cx.fillRect(4, -5, 3, 3);
+    cx.fillStyle = 'rgba(255,255,255,0.95)';
+    cx.fillRect(7, -6, 1, 1);
+
+    // Pico dorado
+    cx.fillStyle = '#ffaa00';
+    cx.fillRect(10, -2, 7, 5);
+    cx.fillStyle = '#ffd700';
+    cx.fillRect(10, -2, 7, 2);
+
+    // Partículas divinas flotantes
+    for (let i = 0; i < 4; i++) {
+      const angle = ft * 0.03 + i * Math.PI / 2;
+      const px = Math.cos(angle) * 16;
+      const py = Math.sin(angle) * 10;
+      cx.fillStyle = `rgba(255,220,50,${0.4 + glow * 0.5})`;
+      cx.fillRect(px - 1, py - 1, 3, 3);
+    }
+
+    cx.textAlign = 'left';
+  }
+
+  // ---- NAVEGACIÓN SKINS ----
+  function startFlappy() {
+    document.getElementById('games-menu').style.display = 'none';
+    const skinScreen = document.getElementById('skin-screen');
+    skinScreen.classList.add('visible');
+    renderAllPreviews();
+    if (!previewAnimFrame) animatePreviews();
+  }
+
+  function goToSkins() {
+    stopFlappy();
+    stopMusic();
+    document.getElementById('game-screen').classList.remove('visible');
+    document.getElementById('skin-screen').classList.add('visible');
+    renderAllPreviews();
+    if (!previewAnimFrame) animatePreviews();
+  }
+
+  function launchGame() {
+    document.getElementById('skin-screen').classList.remove('visible');
+    document.getElementById('game-screen').classList.add('visible');
+    resetFlappy();
+    flappyState = 'idle';
+    currentPlayer = 'him';
+    setPlayer('him');
+    loadHighscores();
+    drawFrame();
+    document.getElementById('game-hint').textContent = 'Toca para volar 🐦';
+    startMusic();
+  }
+
+  function backToMenu() {
+    stopFlappy();
+    stopMusic();
+    document.getElementById('game-screen').classList.remove('visible');
+    document.getElementById('skin-screen').classList.remove('visible');
+    document.getElementById('games-menu').style.display = 'flex';
+  }
+
+  function stopFlappy() {
+    cancelAnimationFrame(animFrame);
+    flappyState = 'idle';
+  }
+
+
+
+  // Highscores
+  function loadHighscores() {
+    const hs = JSON.parse(localStorage.getItem('flappy_hs') || '{"him":0,"her":0}');
+    document.getElementById('hs-him').textContent = hs.him;
+    document.getElementById('hs-her').textContent = hs.her;
+  }
+
+  let currentPlayer = 'him';
+  function setPlayer(who) {
+    currentPlayer = who;
+    document.getElementById('pbtn-him').classList.toggle('active', who === 'him');
+    document.getElementById('pbtn-her').classList.toggle('active', who === 'her');
+    // Cambiar color del pájaro
+    PAL.bird1 = who === 'him' ? '#e8ff47' : '#ff6eb4';
+    PAL.bird2 = who === 'him' ? '#b8cc20' : '#cc4488';
+    if (flappyState !== 'playing') { resetFlappy(); drawFrame(); }
+    showToast(who === 'him' ? '💪 Jugando como Teo' : '🍑 Jugando como Wendy');
+  }
+
+  function saveHighscore(s) {
+    const hs = JSON.parse(localStorage.getItem('flappy_hs') || '{"him":0,"her":0}');
+    if (s > hs[currentPlayer]) {
+      hs[currentPlayer] = s;
+      const name = currentPlayer === 'him' ? 'Teo 💪' : 'Wendy 🍑';
+      showToast(`🏆 ¡Nuevo récord de ${name}: ${s}!`);
+      localStorage.setItem('flappy_hs', JSON.stringify(hs));
+    }
+    loadHighscores();
+  }
+
+  // ---- MÚSICA EN LOOP ----
+  let musicPlaying = false;
+  let musicTimeout = null;
+
+  function playMusic() {
+    if (!musicPlaying) return;
+    // Melodía alegre y bonita en loop
+    const melody = [
+      {f:523,d:0.15},{f:659,d:0.15},{f:784,d:0.15},{f:880,d:0.2},
+      {f:784,d:0.12},{f:659,d:0.12},{f:784,d:0.2},
+      {f:523,d:0.15},{f:587,d:0.15},{f:659,d:0.15},{f:698,d:0.2},
+      {f:659,d:0.12},{f:587,d:0.12},{f:523,d:0.3},
+    ];
+    let t = 0;
+    melody.forEach(({f, d}) => {
+      setTimeout(() => {
+        if (!musicPlaying) return;
+        const osc  = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'triangle';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.04, audioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d + 0.08);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + d + 0.1);
+      }, t * 1000);
+      t += d + 0.04;
+    });
+    // Loop
+    const totalDuration = melody.reduce((a, n) => a + n.d + 0.04, 0) * 1000;
+    musicTimeout = setTimeout(() => { if (musicPlaying) playMusic(); }, totalDuration);
+  }
+
+  function startMusic() { musicPlaying = true; audioCtx.resume(); playMusic(); }
+  function stopMusic()  { musicPlaying = false; clearTimeout(musicTimeout); }
+
+  // ---- CORAZONES EN CANVAS TAP ----
+  function spawnCanvasHearts(clientX, clientY) {
+    const emojis = ['💓','💗','💖','💕'];
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'canvas-heart';
+        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        el.style.left = (clientX + (Math.random() - 0.5) * 30) + 'px';
+        el.style.top  = (clientY + (Math.random() - 0.5) * 20) + 'px';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 950);
+      }, i * 80);
+    }
+  }
+
+
+  // ---- DIBUJO ----
+  function drawBg() {
+    // Gradiente cielo
+    const grad = ctx2d.createLinearGradient(0, 0, 0, H - GROUND_H);
+    grad.addColorStop(0, PAL.sky1);
+    grad.addColorStop(1, PAL.sky2);
+    ctx2d.fillStyle = grad;
+    ctx2d.fillRect(0, 0, W, H - GROUND_H);
+
+    // Estrellas parpadeantes
+    stars.forEach(s => {
+      s.blink += 0.04;
+      ctx2d.globalAlpha = 0.4 + Math.sin(s.blink) * 0.3;
+      ctx2d.fillStyle = PAL.star;
+      ctx2d.fillRect(s.x, s.y, s.r, s.r);
+    });
+    ctx2d.globalAlpha = 1;
+  }
+
+  function drawGround() {
+    ctx2d.fillStyle = PAL.ground;
+    ctx2d.fillRect(0, H - GROUND_H, W, GROUND_H);
+    ctx2d.fillStyle = PAL.groundLine;
+    for (let x = (frameCount * PIPE_SPEED) % 20; x < W; x += 20) {
+      ctx2d.fillRect(x, H - GROUND_H, 10, 3);
+    }
+  }
+
+  function drawPipe(pipe) {
+    // Sombra
+    ctx2d.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx2d.fillRect(pipe.x + 4, 0, PIPE_W, pipe.top);
+    ctx2d.fillRect(pipe.x + 4, pipe.top + PIPE_GAP, PIPE_W, H - pipe.top - PIPE_GAP - GROUND_H);
+
+    // Cuerpo
+    ctx2d.fillStyle = PAL.pipe;
+    ctx2d.fillRect(pipe.x, 0, PIPE_W, pipe.top);
+    ctx2d.fillRect(pipe.x, pipe.top + PIPE_GAP, PIPE_W, H - pipe.top - PIPE_GAP - GROUND_H);
+
+    // Borde oscuro izquierda
+    ctx2d.fillStyle = PAL.pipeDark;
+    ctx2d.fillRect(pipe.x, 0, 4, pipe.top);
+    ctx2d.fillRect(pipe.x, pipe.top + PIPE_GAP, 4, H - pipe.top - PIPE_GAP - GROUND_H);
+
+    // Borde claro derecha
+    ctx2d.fillStyle = PAL.pipeLight;
+    ctx2d.fillRect(pipe.x + PIPE_W - 4, 0, 4, pipe.top);
+    ctx2d.fillRect(pipe.x + PIPE_W - 4, pipe.top + PIPE_GAP, 4, H - pipe.top - PIPE_GAP - GROUND_H);
+
+    // Tapas
+    ctx2d.fillStyle = PAL.pipeDark;
+    ctx2d.fillRect(pipe.x - 4, pipe.top - 16, PIPE_W + 8, 16);
+    ctx2d.fillRect(pipe.x - 4, pipe.top + PIPE_GAP, PIPE_W + 8, 16);
+    ctx2d.fillStyle = PAL.pipe;
+    ctx2d.fillRect(pipe.x - 2, pipe.top - 14, PIPE_W + 4, 12);
+    ctx2d.fillRect(pipe.x - 2, pipe.top + PIPE_GAP + 2, PIPE_W + 4, 12);
+  }
+
+  function drawBird() {
+    ctx2d.save();
+    ctx2d.translate(bird.x, bird.y);
+    const angle = Math.max(-0.5, Math.min(0.8, bird.vy * 0.06));
+    ctx2d.rotate(angle);
+    if (currentSkin === 'doctor' && doctorMonsterMode) {
+      // Modo monstruo: escalar grande y dibujar versión enojada
+      const scale = 1.8 + Math.sin(bird.frameTimer * 0.15) * 0.12;
+      ctx2d.scale(scale, scale);
+      drawSkinDoctorMonster(ctx2d, bird.frameTimer, true);
+    } else {
+      const skin = SKINS[currentSkin] || SKINS['default'];
+      skin.draw(ctx2d, bird.frameTimer, flappyState === 'playing');
+    }
+    // Flash invulnerable doctora
+    if (doctorInvulnFrames > 0 && Math.floor(bird.frameTimer / 4) % 2 === 0) {
+      ctx2d.globalAlpha = 0.4;
+      ctx2d.fillStyle = '#ffffff';
+      ctx2d.fillRect(-14, -12, 28, 24);
+    }
+    ctx2d.restore();
+    bird.frameTimer++;
+  }
+
+  function drawSkinDoctorMonster(cx, ft, playing) {
+    const rage = 0.5 + Math.abs(Math.sin(ft * 0.2)) * 0.5;
+    const shake = Math.sin(ft * 0.4) * 2;
+    // Aura roja
+    cx.fillStyle = `rgba(255,0,0,${0.08 + rage*0.08})`;
+    cx.fillRect(-18, -16, 36, 32);
+    // Cuerpo grande y rojo-oscuro
+    cx.fillStyle = `rgb(${180+Math.floor(rage*40)},30,50)`;
+    cx.fillRect(-12, -10, 24, 20);
+    cx.fillRect(-14, -5, 5, 10);
+    cx.fillRect(-10, -13, 20, 5);
+    cx.fillRect(-10, 8, 20, 5);
+    // Cara enojada
+    cx.fillStyle = '#ff8888';
+    cx.fillRect(-6, -5, 12, 10);
+    // Cejas enojadas
+    cx.fillStyle = '#800000';
+    cx.fillRect(-5+shake, -8, 5, 2);
+    cx.fillRect(1-shake, -8, 5, 2);
+    // Ojos rojos furiosos
+    cx.fillStyle = `rgba(255,50,50,${0.8+rage*0.2})`;
+    cx.fillRect(-4, -6, 5, 4);
+    cx.fillRect(2, -6, 5, 4);
+    cx.fillStyle = '#ff0000';
+    cx.fillRect(-3, -5, 2, 2);
+    cx.fillRect(3, -5, 2, 2);
+    // Brillo ojo
+    cx.fillStyle = 'rgba(255,200,200,0.8)';
+    cx.fillRect(-2, -6, 1, 1);
+    cx.fillRect(4, -6, 1, 1);
+    // Pico grande y abierto
+    cx.fillStyle = '#ff6eb4';
+    cx.fillRect(12, -4, 8, 8);
+    cx.fillStyle = '#cc0000';
+    cx.fillRect(12, 0, 8, 4);
+    // Cruz médica en el pecho
+    cx.fillStyle = `rgba(255,255,255,${0.6+rage*0.4})`;
+    cx.fillRect(-1, -7, 3, 12);
+    cx.fillRect(-5, -3, 11, 3);
+    // Efecto de energía
+    cx.strokeStyle = `rgba(255,50,0,${0.4+rage*0.4})`;
+    cx.lineWidth = 1.5;
+    cx.beginPath(); cx.arc(0, 0, 16, 0, Math.PI*2); cx.stroke();
+  }
+
+  function drawScore() {
+    ctx2d.font = 'bold 28px monospace';
+    ctx2d.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx2d.fillText(score, W/2 - 13, 52);
+    ctx2d.fillStyle = '#fff';
+    ctx2d.fillText(score, W/2 - 14, 50);
+  }
+
+  function drawIdle() {
+    ctx2d.font = 'bold 16px monospace';
+    ctx2d.fillStyle = 'rgba(232,255,71,0.9)';
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText('¡TOCA PARA VOLAR!', W/2, H/2 + 60);
+    ctx2d.textAlign = 'left';
+  }
+
+  function drawDead() {
+    ctx2d.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx2d.fillRect(0, 0, W, H);
+    ctx2d.font = 'bold 26px monospace';
+    ctx2d.fillStyle = '#ff6eb4';
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText('GAME OVER', W/2, H/2 - 20);
+    ctx2d.font = '16px monospace';
+    ctx2d.fillStyle = '#e8ff47';
+    ctx2d.fillText(`Score: ${score}`, W/2, H/2 + 14);
+    // Solo mostrar "Toca para reintentar" si NO es Flappy Dios en primera muerte
+    if (!(currentSkin === 'god' && !godReviveUsed)) {
+      ctx2d.font = '13px monospace';
+      ctx2d.fillStyle = '#888';
+      ctx2d.fillText('Toca para reintentar', W/2, H/2 + 44);
+    }
+    ctx2d.textAlign = 'left';
+  }
+
+  // ---- GAME LOOP ----
+  function gameLoop() {
+    frameCount++;
+    bird.frameTimer++;
+
+    // Física
+    if (!djDashing) {
+      bird.vy += GRAVITY;
+      bird.y += bird.vy;
+    } else {
+      updateDJDash();
+      bird.vy *= 0.85;
+      bird.y += bird.vy;
+    }
+
+    // Generar tuberías
+    if (frameCount % 90 === 0) {
+      const top = 60 + Math.random() * (H - GROUND_H - PIPE_GAP - 100);
+      const newPipe = { x: W, top, scored: false };
+      pipes.push(newPipe);
+      pipesPassed++;
+      if (currentSkin === 'doctor' && !doctorMonsterMode && pipesPassed >= nextSyringePipe) {
+        spawnSyringe(newPipe);
+        scheduleSyringe();
+      }
+    }
+
+    // Mover tuberías
+    pipes.forEach(p => p.x -= PIPE_SPEED);
+    pipes = pipes.filter(p => p.x > -PIPE_W - 10);
+
+    // Puntaje
+    pipes.forEach(p => {
+      if (!p.scored && p.x + PIPE_W < bird.x) {
+        p.scored = true;
+        score++;
+        document.getElementById('score-display').textContent = score;
+        playTone(660, 'sine', 0.06, 0.07);
+        setTimeout(() => playTone(880, 'sine', 0.06, 0.07), 60);
+      }
+    });
+
+    // Poderes
+    updateDoctorPowers();
+
+    // Colisiones
+    const birdR = doctorMonsterMode ? 22 : 10;
+    const isInvuln = djDashing || djDashInvuln || doctorMonsterMode || doctorInvulnFrames > 0;
+    const hitGround = bird.y + birdR > H - GROUND_H;
+    const hitCeiling = bird.y - birdR < 0;
+    const hitPipe = !isInvuln && pipes.some(p =>
+      bird.x + birdR > p.x + 4 &&
+      bird.x - birdR < p.x + PIPE_W - 4 &&
+      (bird.y - birdR < p.top || bird.y + birdR > p.top + PIPE_GAP)
+    );
+
+    if ((hitGround || hitCeiling || hitPipe) && !isInvuln) {
+      flappyState = 'dead';
+      saveHighscore(score);
+      playTone(200, 'sawtooth', 0.4, 0.2);
+      if (currentSkin === 'god' && !godReviveUsed) {
+        setTimeout(() => { document.getElementById('revive-btn').style.display = 'block'; }, 400);
+        document.getElementById('game-hint').textContent = '👑 ¡Usa tu poder divino para continuar!';
+      } else {
+        document.getElementById('game-hint').textContent = 'Toca para reintentar 💀';
+      }
+    }
+
+    drawFrame();
+    if (flappyState === 'playing') animFrame = requestAnimationFrame(gameLoop);
+  }
+
+  function drawFrame() {
+    ctx2d.clearRect(0, 0, W, H);
+    drawBg();
+    pipes.forEach(drawPipe);
+    drawGround();
+    // Jeringas doctora
+    if (currentSkin === 'doctor') syringes.forEach(drawSyringe);
+    drawGodShockwaves();
+    drawDJShockwaves();
+    drawBird();
+    if (flappyState === 'playing' || flappyState === 'dead') drawScore();
+    if (flappyState === 'idle') drawIdle();
+    if (flappyState === 'dead') drawDead();
+    // HUD de poderes
+    drawDJBar();
+    drawDoctorBar();
+  }
+
+  // Controles
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    audioCtx.resume();
+    spawnCanvasHearts(e.clientX, e.clientY);
+
+    // 2 dedos = dash DJ Pilín
+    if (currentSkin === 'headphones' && flappyState === 'playing') {
+      activeTouches++;
+      if (activeTouches >= 2 && djBarFilled && !djDashing) {
+        activateDJDash();
+        return;
+      }
+    }
+
+    if (flappyState === 'playing') { flap(); return; }
+    if (flappyState === 'idle') { flap(); animFrame = requestAnimationFrame(gameLoop); return; }
+    if (flappyState === 'dead') {
+      // Si es Flappy Dios primera muerte: SOLO el botón revivir funciona
+      if (currentSkin === 'god' && !godReviveUsed) return;
+      flappyState = 'idle';
+      resetFlappy();
+      drawFrame();
+    }
+  });
+
+  canvas.addEventListener('pointerup', e => { activeTouches = Math.max(0, activeTouches - 1); });
+  canvas.addEventListener('pointercancel', e => { activeTouches = Math.max(0, activeTouches - 1); });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && document.getElementById('game-screen').classList.contains('visible')) {
+      e.preventDefault();
+      audioCtx.resume();
+      if (flappyState === 'playing') { flap(); return; }
+      if (flappyState !== 'playing') { flap(); if (flappyState === 'playing') animFrame = requestAnimationFrame(gameLoop); }
+    }
+  });
+
+
+
+  // ===== EJERCICIOS CHECK =====
+  const dayNames = {
+    '01': ['Upper Pesado 💪', 'Pecho, espalda, hombro y brazos'],
+    '02': ['Lower Cuádriceps 🦵', 'Cuádriceps, femoral y glúteo'],
+    '03': ['Core + Cardio 🔥', 'Abdomen, movilidad y cardio'],
+    '04': ['Upper Volumen 💪', 'Pecho, espalda, hombro y brazos'],
+    '05': ['Lower Femoral 🦵', 'Glúteo, femoral y cuádriceps'],
+  };
+
+  function checkDayComplete(card) {
+    const items = card.querySelectorAll('.exercise-list li');
+    const allDone = [...items].every(li => li.classList.contains('checked'));
+    if (!allDone) return;
+
+    const dayNum = card.querySelector('.day-num').textContent.trim();
+    const section = card.closest('.section');
+    const isHim = section && section.id === 'him';
+    const name = isHim ? 'Teo' : 'Wendy';
+    const [dayTitle, dayDesc] = dayNames[dayNum] || ['este día', ''];
+
+    // Guardar racha
+    saveStreakDay(isHim ? 'him' : 'her');
+    updateWeekDots();
+
+    if (isWeekComplete()) {
+      setTimeout(() => showWeekModal(), 600);
+    } else {
+      setTimeout(() => showCelebrate(name, dayTitle, dayDesc, isHim), 400);
+    }
+  }
+
+  function showCelebrate(name, dayTitle, dayDesc, isHim) {
+    const modal = document.getElementById('celebrate-modal');
+    const msg   = document.getElementById('celebrate-msg');
+    const emoji = document.getElementById('celebrate-emoji');
+    emoji.textContent = isHim ? '🏆' : '🍑';
+    msg.innerHTML = `<strong>${name}</strong> completó <strong>${dayTitle}</strong>!<br><span style="font-size:0.78rem">${dayDesc}</span><br><br>¡Eso es dedicación pura! 🥺💓`;
+    modal.classList.add('show');
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => spawnHearts(
+        Math.random() * window.innerWidth,
+        Math.random() * window.innerHeight * 0.7, 4
+      ), i * 250);
+    }
+    playSuccessSound();
+  }
+
+  function closeCelebrate() {
+    document.getElementById('celebrate-modal').classList.remove('show');
+  }
+
+  document.addEventListener('click', e => {
+    const li = e.target.closest('.exercise-list li');
+    if (!li) return;
+    audioCtx.resume();
+    const rect = li.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    if (li.classList.contains('checked')) {
+      li.classList.remove('checked');
+      playUncheck();
+    } else {
+      li.classList.add('checked');
+      li.classList.remove('pop');
+      void li.offsetWidth;
+      li.classList.add('pop');
+      playCheck();
+      spawnHearts(cx, cy, 4);
+      showToast('¡Ejercicio completado! 💪');
+      checkDayComplete(li.closest('.day-card'));
+      // Mostrar timer de descanso
+      showRestTimer();
+      if (!rtRunning) {
+        rtSeconds = rtTotal;
+        document.getElementById('rt-display').classList.remove('done');
+        document.getElementById('rest-timer-fab').classList.remove('done');
+        document.getElementById('rt-arc').classList.remove('done');
+        document.getElementById('rt-startstop').textContent = '▶';
+        updateRtDisplay();
+        updateRtArc();
+      }
+    }
+    saveProgress();
+    updateWeekDots();
+  });
+
+  // ===== TIMER DE DESCANSO =====
+  let rtSeconds = 90;
+  let rtTotal   = 90;
+  let rtInterval = null;
+  let rtRunning  = false;
+
+  function showRestTimer() {
+    document.getElementById('rest-timer-fab').classList.add('visible');
+  }
+
+  function hideRestTimer() {
+    clearInterval(rtInterval);
+    rtRunning = false;
+    document.getElementById('rest-timer-fab').classList.remove('visible', 'running', 'done');
+    document.getElementById('rt-startstop').textContent = '▶';
+  }
+
+  function setRestTime(secs) {
+    clearInterval(rtInterval);
+    rtRunning = false;
+    rtSeconds = secs;
+    rtTotal   = secs;
+    document.getElementById('rt-startstop').textContent = '▶';
+    document.getElementById('rest-timer-fab').classList.remove('running', 'done');
+    document.getElementById('rt-display').classList.remove('done');
+    updateRtDisplay();
+    updateRtArc();
+  }
+
+  function toggleRestTimer() {
+    if (rtRunning) {
+      clearInterval(rtInterval);
+      rtRunning = false;
+      document.getElementById('rt-startstop').textContent = '▶';
+      document.getElementById('rest-timer-fab').classList.remove('running');
+    } else {
+      // Reset si ya terminó
+      if (rtSeconds <= 0) {
+        rtSeconds = rtTotal;
+        document.getElementById('rt-display').classList.remove('done');
+        document.getElementById('rest-timer-fab').classList.remove('done');
+        document.getElementById('rt-arc').classList.remove('done');
+      }
+      rtRunning = true;
+      document.getElementById('rt-startstop').textContent = '⏸';
+      document.getElementById('rest-timer-fab').classList.add('running');
+      rtInterval = setInterval(() => {
+        rtSeconds--;
+        updateRtDisplay();
+        updateRtArc();
+        if (rtSeconds <= 3 && rtSeconds > 0) {
+          playTone(440, 'sine', 0.08, 0.06);
+        }
+        if (rtSeconds <= 0) {
+          clearInterval(rtInterval);
+          rtRunning = false;
+          document.getElementById('rt-startstop').textContent = '▶';
+          document.getElementById('rest-timer-fab').classList.remove('running');
+          document.getElementById('rest-timer-fab').classList.add('done');
+          document.getElementById('rt-display').classList.add('done');
+          document.getElementById('rt-arc').classList.add('done');
+          // Sonido de fin
+          playTone(880, 'sine', 0.2, 0.15);
+          setTimeout(() => playTone(1046, 'sine', 0.2, 0.2), 150);
+          setTimeout(() => playTone(1318, 'sine', 0.2, 0.25), 300);
+          showToast('⏱️ ¡Descanso terminado! 💪');
+        }
+      }, 1000);
+    }
+  }
+
+  function updateRtDisplay() {
+    const m = Math.floor(Math.abs(rtSeconds) / 60);
+    const s = Math.abs(rtSeconds) % 60;
+    document.getElementById('rt-display').textContent = m + ':' + String(s).padStart(2,'0');
+  }
+
+  function updateRtArc() {
+    const arc = document.getElementById('rt-arc');
+    const pct = Math.max(0, rtSeconds / rtTotal);
+    // stroke-dashoffset: 100 = vacío, 0 = lleno
+    arc.style.strokeDashoffset = (1 - pct) * 100;
+  }
+
+  // Mostrar timer al marcar un ejercicio (se llama desde el click handler principal)
+
+  // ===== ESTADÍSTICAS =====
+  const STREAK_KEY = 'pareja_fit_streaks';
+
+  function openStats() {
+    renderStats();
+    document.getElementById('stats-panel').classList.add('open');
+    document.getElementById('stats-overlay').classList.add('open');
+  }
+
+  function closeStats() {
+    document.getElementById('stats-panel').classList.remove('open');
+    document.getElementById('stats-overlay').classList.remove('open');
+  }
+
+  function getStreakData() {
+    try { return JSON.parse(localStorage.getItem(STREAK_KEY)) || { him: [], her: [] }; }
+    catch { return { him: [], her: [] }; }
+  }
+
+  function saveStreakDay(who) {
+    const data = getStreakData();
+    const today = new Date().toISOString().slice(0, 10);
+    if (!data[who].includes(today)) {
+      data[who].push(today);
+      localStorage.setItem(STREAK_KEY, JSON.stringify(data));
+    }
+  }
+
+  function calcStreak(days) {
+    if (!days.length) return 0;
+    const sorted = [...new Set(days)].sort().reverse();
+    let streak = 0;
+    let cur = new Date();
+    cur.setHours(0,0,0,0);
+    for (const d of sorted) {
+      const dd = new Date(d + 'T00:00:00');
+      const diff = Math.round((cur - dd) / 86400000);
+      if (diff <= 1) { streak++; cur = dd; }
+      else break;
+    }
+    return streak;
+  }
+
+  function renderStats() {
+    const streakData = getStreakData();
+    document.getElementById('streak-him').textContent = calcStreak(streakData.him);
+    document.getElementById('streak-her').textContent = calcStreak(streakData.her);
+
+    // Ejercicios completados
+    let totalHim = 0, totalHer = 0;
+    document.querySelectorAll('#him .exercise-list li.checked').forEach(() => totalHim++);
+    document.querySelectorAll('#her .exercise-list li.checked').forEach(() => totalHer++);
+    document.getElementById('total-him').textContent = totalHim;
+    document.getElementById('total-her').textContent = totalHer;
+
+    // Highscores Flappy
+    const hs = JSON.parse(localStorage.getItem('flappy_hs') || '{"him":0,"her":0}');
+    document.getElementById('hs-stat-him').textContent = hs.him;
+    document.getElementById('hs-stat-her').textContent = hs.her;
+
+    // Grid semana
+    const grid = document.getElementById('stats-week-grid');
+    grid.innerHTML = '';
+    ['01','02','03','04','05'].forEach(d => {
+      const himTotal = document.querySelectorAll(`#him .day-card`);
+      let hDone = 0, hTotal = 0, wDone = 0, wTotal = 0;
+      // Teo
+      const himCard = [...document.querySelectorAll('#him .day-card')]
+        .find(c => c.querySelector('.day-num').textContent.trim() === d);
+      if (himCard) {
+        const items = himCard.querySelectorAll('.exercise-list li');
+        hTotal = items.length;
+        hDone  = [...items].filter(li => li.classList.contains('checked')).length;
+      }
+      // Wendy
+      const herCard = [...document.querySelectorAll('#her .day-card')]
+        .find(c => c.querySelector('.day-num').textContent.trim() === d);
+      if (herCard) {
+        const items = herCard.querySelectorAll('.exercise-list li');
+        wTotal = items.length;
+        wDone  = [...items].filter(li => li.classList.contains('checked')).length;
+      }
+      const hPct = hTotal ? Math.round(hDone/hTotal*100) : 0;
+      const wPct = wTotal ? Math.round(wDone/wTotal*100) : 0;
+      grid.innerHTML += `
+        <div class="stats-day-chip">
+          <span class="sdc-num">D${d.replace('0','')}</span>
+          <div class="sdc-progress">
+            <div style="font-size:0.65rem;color:var(--muted)">💪 ${hDone}/${hTotal}</div>
+            <div class="sdc-bar-wrap"><div class="sdc-bar him-bar" style="width:${hPct}%"></div></div>
+          </div>
+        </div>
+        <div class="stats-day-chip">
+          <span class="sdc-num">D${d.replace('0','')}</span>
+          <div class="sdc-progress">
+            <div style="font-size:0.65rem;color:var(--muted)">🍑 ${wDone}/${wTotal}</div>
+            <div class="sdc-bar-wrap"><div class="sdc-bar her-bar" style="width:${wPct}%"></div></div>
+          </div>
+        </div>`;
+    });
+  }
+
+  // ===== TÍTULO + EASTER EGG FLAPPY DIOS =====
+  let titleTaps = 0; let titleTimer;
+  document.querySelector('h1').addEventListener('click', e => {
+    audioCtx.resume();
+    playHeartSound();
+    spawnHearts(e.clientX, e.clientY, 8);
+    showToast('¡Con todo el amor! 🥺💓');
+    // Easter egg: 7 taps rápidos = desbloquear Flappy Dios
+    titleTaps++;
+    clearTimeout(titleTimer);
+    titleTimer = setTimeout(() => { titleTaps = 0; }, 2000);
+    if (titleTaps >= 7) {
+      titleTaps = 0;
+      localStorage.setItem('flappy_god_unlocked', '1');
+      showToast('👑 ¡FLAPPY DIOS DESBLOQUEADO! 👑');
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => spawnHearts(
+          Math.random() * window.innerWidth,
+          Math.random() * window.innerHeight * 0.7, 5
+        ), i * 150);
+      }
+      playSuccessSound();
+    }
+  });
+
+  // ===== BOTONES TOGGLE CORAZONES =====
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', e => spawnHearts(e.clientX, e.clientY, 3));
+  });
+
+  // ===== CARGAR PROGRESO AL INICIO =====
+  loadProgress();
+</script>
+
+</body>
+</html>
