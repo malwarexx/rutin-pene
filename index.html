@@ -2275,8 +2275,8 @@
   let doctorMonsterMode = false;
   let doctorMonsterFrames = 0;
   let doctorInvulnFrames = 0;
-  const SYRINGE_REQUIRED = 3;
-  const MONSTER_DURATION = 240; // 4s @ 60fps
+  const SYRINGE_REQUIRED = 2;
+  const MONSTER_DURATION = 300; // 4s @ 60fps
   const INVULN_DURATION  = 60;  // 1s
 
   function scheduleSyringe() {
@@ -2363,7 +2363,7 @@
   function activateDoctorMonster() {
     doctorMonsterMode = true;
     doctorMonsterFrames = MONSTER_DURATION;
-    syringesCollected = 3;
+    syringesCollected = 0;
     showToast('💉 ¡MODO MONSTRUO! 4s');
     // Sonido de transformación
     [200,300,500,800,1200].forEach((f,i) => setTimeout(() => playTone(f,'sawtooth',0.15,0.12), i*60));
